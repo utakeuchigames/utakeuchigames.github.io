@@ -16,7 +16,7 @@
       padding: 0;
     }
     :root, body.is-fullscreen {
-      background-color: #000000;
+      background-color: #ffffff;
     }
     [hidden] {
       display: none !important;
@@ -46,7 +46,7 @@
       cursor: default;
       user-select: none;
       -webkit-user-select: none;
-      background-color: #000000;
+      background-color: #ffffff;
     }
     #launch {
       background-color: rgba(0, 0, 0, 0.7);
@@ -111,10 +111,10 @@
       border-radius: 4px;
     }
     .control-button-highlight:hover {
-      background: #ff4c4c26;
+      background: #ffffff26;
     }
     .control-button-highlight.active {
-      background: #ff4c4c59;
+      background: #ffffff59;
     }
     .fullscreen-button {
       background: white;
@@ -142,20 +142,8 @@
     }
     
   </style>
-  <meta name="theme-color" content="#000000">
-    <link rel="manifest" href="manifest.json" />
-<script>
-    if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw.js')
-    .then(function(registration) {
-      console.log('Service Worker registered with scope: ', registration.scope);
-    })
-    .catch(function(err) {
-      console.log('Service Worker registration failed: ', err);
-    });
-}
-
- </script>
+  <meta name="theme-color" content="#ffffff">
+  
 </head>
 <body>
   <div id="app"></div>
@@ -233,7 +221,7 @@
       };
 
       scaffolding.setUsername("player####".replace(/#/g, () => Math.floor(Math.random() * 10)));
-      scaffolding.setAccentColor("#ff4c4c");
+      scaffolding.setAccentColor("#ffffff");
 
       try {
         scaffolding.addCloudProvider(new Scaffolding.Cloud.WebSocketProvider(["wss://clouddata.turbowarp.org","wss://clouddata.turbowarp.xyz"], "p4-@プロジェクト.sb3"));
