@@ -1,6 +1,6 @@
 {
-  "name": "タイマー",
-  "short_name": "タイマー",
+  "name": "ストップウォッチ",
+  "short_name": "ストップウォッチ",
   "display": "standalone",
   "background_color": "#ffffff",
   	"categories": ["music"],
