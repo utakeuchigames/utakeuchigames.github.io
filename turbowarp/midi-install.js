@@ -4,7 +4,13 @@ document.body.innerHTML = `
   <h2>MIDI Reader for iPad</h2>
   <p>① .midファイルを選択 → ② 結果が下に出る</p>
   <input id="file" type="file" accept=".mid"><br><br>
-  <pre id="status">準備完了 ✅</pre>
+  <div id="status" style="
+    border: 1px solid #888;
+    padding: 6px;
+    margin-bottom: 8px;
+    background: #f0f0f0;
+    font-family: monospace;
+  ">準備完了 ✅</div>
   <textarea id="output" rows="10" cols="60" placeholder="ここに結果が出ます"></textarea>
 `;
 
