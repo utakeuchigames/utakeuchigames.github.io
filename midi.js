@@ -1,123 +1,81 @@
-(function(Scratch) {
-  "use strict";
+class MidiReaderExtension {
+  constructor() {
+    this.notes = [];
+  }
 
-  class MidiReader {
-    constructor() {
-      this.midiNotes = [];
-      this.parseMidi = null;
-      this.loading = false;
-    }
+  getInfo() {
+    return {
+      id: "midireader",
+      name: "MIDI Reader",
+      blocks: [
+        {
+          opcode: "loadMIDIFile",
+          blockType: "command",
+          text: "load MIDI file",
+        },
+        {
+          opcode: "getNotes",
+          blockType: "reporter",
+          text: "get notes",
+        },
+      ],
+    };
+  }
 
-    async _loadParser() {
-      if (!this.parseMidi) {
-        const module = await import("https://cdn.jsdelivr.net/npm/midi-file@1.2.3/+esm");
-        this.parseMidi = module.parseMidi;
-      }
-    }
-
-    getInfo() {
-      return {
-        id: "midiReader",
-        name: "MIDIリーダー",
-        color1: "#7B5EFF",
-        blocks: [
-          {
-            opcode: "loadMidiFile",
-            blockType: Scratch.BlockType.COMMAND,
-            text: "MIDIファイルを読み込む",
-          },
-          {
-            opcode: "getNoteList",
-            blockType: Scratch.BlockType.REPORTER,
-            text: "ノート一覧(JSON)",
-          },
-          {
-            opcode: "getNoteAt",
-            blockType: Scratch.BlockType.REPORTER,
-            text: "ノート[INDEX]番の高さ",
-            arguments: {
-              INDEX: { type: Scratch.ArgumentType.NUMBER, defaultValue: 1 },
-            },
-          },
-        ],
-      };
-    }
-
-    // TurboWarpではPromiseをそのまま返す必要あり
-    loadMidiFile() {
-      this.loading = true;
-      return this._loadMidiFileCore().then(() => {
-        this.loading = false;
-        alert(`読み込み完了！ ノート数: ${this.midiNotes.length}`);
-      }).catch(err => {
-        this.loading = false;
-        alert("MIDI読み込みエラー: " + err.message);
-      });
-    }
-
-    async _loadMidiFileCore() {
-      await this._loadParser();
-
-      const result = await this._showFilePrompt(".mid");
-      const midi = this.parseMidi(new Uint8Array(result.arrayBuffer));
-
-      const notes = [];
-      for (const [trackIndex, track] of midi.tracks.entries()) {
-        let currentTime = 0;
-        for (const event of track) {
-          currentTime += event.deltaTime;
-          if (event.type === "noteOn" && event.velocity > 0) {
-            notes.push({
-              track: trackIndex,
-              noteNumber: event.noteNumber,
-              deltaTime: event.deltaTime,
-              absTime: currentTime,
-            });
-          }
-        }
-      }
-
-      this.midiNotes = notes;
-    }
-
-    getNoteList() {
-      return JSON.stringify(this.midiNotes);
-    }
-
-    getNoteAt(args) {
-      const i = Math.floor(args.INDEX) - 1;
-      if (i < 0 || i >= this.midiNotes.length) return "";
-      return this.midiNotes[i].noteNumber;
-    }
-
-    _showFilePrompt(accept = "*/*") {
-      return new Promise((resolve, reject) => {
-        const input = document.createElement("input");
-        input.type = "file";
-        input.accept = accept;
-        input.style.display = "none";
-
-        input.onchange = () => {
-          const file = input.files[0];
-          if (!file) {
-            reject(new Error("ファイルが選択されませんでした"));
-            return;
-          }
-
-          const reader = new FileReader();
-          reader.onload = () => {
-            resolve({ name: file.name, arrayBuffer: reader.result });
-          };
-          reader.onerror = () => reject(reader.error);
-          reader.readAsArrayBuffer(file);
-        };
-
-        document.body.appendChild(input);
-        input.click();
-        document.body.removeChild(input);
-      });
+  async loadMIDIFile() {
+    try {
+      const file = await this._chooseFile(".mid");
+      const arrayBuffer = await file.arrayBuffer();
+      this.notes = this._parseMIDI(arrayBuffer);
+      alert("MIDI loaded! Notes: " + this.notes.length);
+    } catch (e) {
+      alert("Failed to load MIDI: " + e.message);
     }
   }
 
-  Scratch.extensions.register(new MidiReader());
-})(Scratch);
+  getNotes() {
+    return JSON.stringify(this.notes);
+  }
+
+  async _chooseFile(accept) {
+    return new Promise((resolve, reject) => {
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = accept;
+      input.onchange = () => {
+        if (input.files.length > 0) resolve(input.files[0]);
+        else reject(new Error("No file selected"));
+      };
+      input.click();
+    });
+  }
+
+  _parseMIDI(buffer) {
+    const data = new DataView(buffer);
+    let pos = 0;
+
+    function readStr(len) {
+      let s = "";
+      for (let i = 0; i < len; i++) s += String.fromCharCode(data.getUint8(pos++));
+      return s;
+    }
+
+    function read32() {
+      const v = data.getUint32(pos);
+      pos += 4;
+      return v;
+    }
+
+    function read16() {
+      const v = data.getUint16(pos);
+      pos += 2;
+      return v;
+    }
+
+    // ヘッダー確認
+    if (readStr(4) !== "MThd") throw new Error("Invalid MIDI file");
+    const headerLen = read32();
+    const format = read16();
+    const ntrks = read16();
+    const division = read16();
+    pos += hea
