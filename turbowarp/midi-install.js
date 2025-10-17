@@ -1,28 +1,3 @@
-document.body.innerHTML = `
-  <h2>軽量MIDIリーダー</h2>
-  <input id="file" type="file" accept=".mid"><br><br>
-  <div id="status">📂 ファイルを選んでください</div>
-  <textarea id="output" rows="10" cols="60" placeholder="結果がここに出ます"></textarea>
-`;
-
-const fileInput = document.getElementById("file");
-const status = document.getElementById("status");
-const output = document.getElementById("output");
-
-fileInput.onchange = async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  status.textContent = "読み込み中...";
-  try {
-    const buf = await file.arrayBuffer();
-    const notes = parseMIDI(buf);
-    output.value = JSON.stringify(notes, null, 2);
-    status.textContent = `✅ 完了！ノート数: ${notes.length}`;
-  } catch (err) {
-    status.textContent = "⚠️ エラー: " + err.message;
-  }
-};
-
 function parseMIDI(buffer) {
   const data = new DataView(buffer);
   let pos = 0;
@@ -31,8 +6,16 @@ function parseMIDI(buffer) {
     for (let i = 0; i < n; i++) s += String.fromCharCode(data.getUint8(pos++));
     return s;
   };
-  const read32 = () => (pos += 4, data.getUint32(pos - 4));
-  const read16 = () => (pos += 2, data.getUint16(pos - 2));
+  const read32 = () => {
+    const v = data.getUint32(pos);
+    pos += 4;
+    return v;
+  };
+  const read16 = () => {
+    const v = data.getUint16(pos);
+    pos += 2;
+    return v;
+  };
   const readVar = () => {
     let v = 0;
     while (true) {
@@ -49,11 +32,14 @@ function parseMIDI(buffer) {
   const format = read16();
   const tracks = read16();
   const division = read16();
- 
+
+  // 🩹 ここ削除！→ pos += headerLen - 6; はやめる
+  // 一部MIDIでズレるため
 
   const notes = [];
   for (let t = 0; t < tracks; t++) {
-    if (readStr(4) !== "MTrk") throw new Error("トラックが見つかりません");
+    const chunkId = readStr(4);
+    if (chunkId !== "MTrk") throw new Error(`トラックが見つかりません (chunk=${chunkId})`);
     const trackEnd = pos + read32();
     let time = 0;
     let runningStatus = 0;
@@ -62,7 +48,7 @@ function parseMIDI(buffer) {
       const delta = readVar();
       time += delta;
       let status = data.getUint8(pos++);
-      if (status < 0x80) { // running status
+      if (status < 0x80) {
         pos--;
         status = runningStatus;
       } else {
@@ -72,13 +58,13 @@ function parseMIDI(buffer) {
       const type = status & 0xf0;
       const ch = status & 0x0f;
 
-      if (type === 0x90) { // noteOn
+      if (type === 0x90) {
         const note = data.getUint8(pos++);
         const vel = data.getUint8(pos++);
         if (vel > 0) notes.push({ time, ch, note, vel });
-      } else if (type === 0x80) { // noteOff
+      } else if (type === 0x80) {
         pos += 2;
-      } else if (status === 0xff) { // meta
+      } else if (status === 0xff) {
         const metaType = data.getUint8(pos++);
         const len = readVar();
         pos += len;
