@@ -1,0 +1,29 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <title>1</title>
+    <meta chatset="utf-8">
+  </head>
+  <body>
+    <script>
+      document.body.innerHTML = `
+  <h3>MIDI Header Check</h3>
+  <input id="file" type="file" accept=".mid"><br><br>
+  <pre id="result"></pre>
+`;
+
+document.getElementById("file").onchange = async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const buf = await file.arrayBuffer();
+  const bytes = new Uint8Array(buf);
+  let hex = "";
+  for (let i = 0; i < 12 && i < bytes.length; i++) {
+    hex += bytes[i].toString(16).padStart(2, "0") + " ";
+  }
+  document.getElementById("result").textContent = hex;
+};
+
+    </script>
+  </body>
+</html>
