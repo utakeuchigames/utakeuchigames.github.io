@@ -1,77 +1,79 @@
-function parseMIDI(buffer) {
-  const data = new DataView(buffer);
-  let pos = 0;
-  const readStr = (n) => {
-    let s = "";
-    for (let i = 0; i < n; i++) s += String.fromCharCode(data.getUint8(pos++));
-    return s;
-  };
-  const read32 = () => { const v = data.getUint32(pos, false); pos += 4; return v; };
-  const read16 = () => { const v = data.getUint16(pos, false); pos += 2; return v; };
-  const readVar = () => {
-    let v = 0;
-    while (true) {
-      const b = data.getUint8(pos++);
-      v = (v << 7) | (b & 0x7f);
-      if (!(b & 0x80)) break;
-    }
-    return v;
-  };
+import { parseMidi } from "https://cdn.jsdelivr.net/npm/midi-file@1.2.3/+esm";
 
-  // --- ヘッダー ---
-  if (readStr(4) !== "MThd") throw new Error("MIDIヘッダーが不正です");
-  const headerLen = read32();
-  const format = read16();
-  const declaredTracks = read16();
-  const division = read16();
+class MidiReader {
+  constructor() {
+    this.notes = [];
+    this.status = "未読み込み";
+  }
 
-  const notes = [];
-  let trackCount = 0;
+  getInfo() {
+    return {
+      id: "midireader",
+      name: "MIDI Reader",
+      blocks: [
+        {
+          opcode: "loadMIDIFile",
+          blockType: "command",
+          text: "MIDIファイルを読み込む",
+        },
+        {
+          opcode: "getNotes",
+          blockType: "reporter",
+          text: "ノート一覧",
+        },
+        {
+          opcode: "getStatus",
+          blockType: "reporter",
+          text: "読み込みステータス",
+        },
+      ],
+    };
+  }
 
-  // --- MTrk が見つかる限り読む ---
-  while (pos < data.byteLength) {
-    const id = readStr(4);
-    if (id !== "MTrk") {
-      // MTrkが無くなったら終了（End of Trackなど）
-      break;
-    }
-    trackCount++;
-    const trackEnd = pos + read32();
-    let time = 0;
-    let runningStatus = 0;
-
-    while (pos < trackEnd && pos < data.byteLength) {
-      const delta = readVar();
-      time += delta;
-      let status = data.getUint8(pos++);
-      if (status < 0x80) {
-        pos--;
-        status = runningStatus;
-      } else {
-        runningStatus = status;
+  async loadMIDIFile() {
+    try {
+      const [fileHandle] = await Scratch.FilePicker.prompt({
+        types: ["mid", "midi"],
+      });
+      if (!fileHandle) {
+        this.status = "❌ ファイルが選択されませんでした";
+        return;
       }
 
-      const type = status & 0xf0;
-      const ch = status & 0x0f;
+      this.status = "読み込み中…";
 
-      if (type === 0x90) {
-        const note = data.getUint8(pos++);
-        const vel = data.getUint8(pos++);
-        if (vel > 0) notes.push({ time, ch, note, vel });
-      } else if (type === 0x80) {
-        pos += 2;
-      } else if (status === 0xff) {
-        const metaType = data.getUint8(pos++);
-        const len = readVar();
-        pos += len;
-      } else if (type === 0xc0 || type === 0xd0) {
-        pos++;
-      } else {
-        pos += 2;
+      const arrayBuffer = await fileHandle.arrayBuffer(); // ← await 重要！！
+      const parsed = parseMidi(new Uint8Array(arrayBuffer));
+
+      this.notes = [];
+      for (const track of parsed.tracks) {
+        let time = 0;
+        for (const e of track) {
+          time += e.deltaTime;
+          if (e.type === "noteOn" && e.velocity > 0) {
+            this.notes.push({
+              pitch: e.noteNumber,
+              time,
+              velocity: e.velocity,
+            });
+          }
+        }
       }
+
+      this.status = `✅ 完了: ${this.notes.length} ノート`;
+    } catch (err) {
+      this.status = `⚠️ エラー: ${err.message}`;
+      console.error(err);
     }
   }
 
-  console.log(`解析完了: 宣言トラック=${declaredTracks}, 実際=${trackCount}`);
-  return notes;
+  getNotes() {
+    return JSON.stringify(this.notes, null, 2);
+  }
+
+  getStatus() {
+    return this.status;
+  }
 }
+
+Scratch.extensions.register(new MidiReader());
