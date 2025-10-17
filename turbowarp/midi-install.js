@@ -49,7 +49,7 @@ function parseMIDI(buffer) {
   const format = read16();
   const tracks = read16();
   const division = read16();
-  pos += headerLen - 6;
+ 
 
   const notes = [];
   for (let t = 0; t < tracks; t++) {
