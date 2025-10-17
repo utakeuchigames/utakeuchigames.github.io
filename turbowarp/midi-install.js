@@ -48,7 +48,8 @@ fileInput.onchange = async (e) => {
 
     output.value = JSON.stringify(notes, null, 2);
     status.textContent = `✅ 完了！ノート数: ${notes.length}`;
-  } catch (err) {
-    status.textContent = "⚠️ エラー: " + err.message;
+    } catch (err) {
+    status.textContent = "⚠️ エラー内容: " + JSON.stringify(err, Object.getOwnPropertyNames(err));
   }
+
 };
