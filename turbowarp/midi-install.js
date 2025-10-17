@@ -1,7 +1,5 @@
-import { parseMidi } from "https://cdn.jsdelivr.net/npm/midi-file@1.2.3/+esm";
-
 document.body.innerHTML = `
-  <h2>MIDI Reader for iPad</h2>
+  <h2>Pure JS MIDI Reader</h2>
   <p>① .midファイルを選択 → ② 結果が下に出る</p>
   <input id="file" type="file" accept=".mid"><br><br>
   <div id="status" style="
@@ -26,29 +24,85 @@ fileInput.onchange = async (e) => {
   }
 
   status.textContent = "📥 ファイル読み込み中...";
+  const buffer = await file.arrayBuffer();
+  status.textContent = "🎵 解析中...";
+
   try {
-    const arrayBuffer = await file.arrayBuffer();
-    status.textContent = "🎵 MIDI解析中...";
+    const data = new DataView(buffer);
+    let pos = 0;
 
-    // ✅ Safari対策: ArrayBuffer → Uint8Array
-    const midi = parseMidi(new Uint8Array(arrayBuffer));
-
-    if (!midi || !midi.tracks) {
-      throw new Error("MIDIの解析に失敗しました（結果がundefined）");
+    function readStr(len) {
+      let s = "";
+      for (let i = 0; i < len; i++) s += String.fromCharCode(data.getUint8(pos++));
+      return s;
     }
 
+    function read32() {
+      const v = data.getUint32(pos);
+      pos += 4;
+      return v;
+    }
+
+    function read16() {
+      const v = data.getUint16(pos);
+      pos += 2;
+      return v;
+    }
+
+    function readVar() {
+      let value = 0;
+      while (true) {
+        const b = data.getUint8(pos++);
+        value = (value << 7) | (b & 0x7f);
+        if ((b & 0x80) === 0) break;
+      }
+      return value;
+    }
+
+    // ---- ヘッダー確認 ----
+    if (readStr(4) !== "MThd") throw new Error("Invalid MIDI header");
+    const headerLen = read32();
+    const format = read16();
+    const ntrks = read16();
+    const division = read16();
+    pos += headerLen - 6;
+
     const notes = [];
-    for (const track of midi.tracks) {
-      if (!Array.isArray(track)) continue;
+
+    for (let t = 0; t < ntrks; t++) {
+      if (readStr(4) !== "MTrk") throw new Error("Missing MTrk");
+      const trackEnd = pos + read32();
       let time = 0;
-      for (const event of track) {
-        time += event.deltaTime;
-        if (event.type === "noteOn" && event.velocity > 0) {
-          notes.push({
-            time,
-            note: event.noteNumber,
-            velocity: event.velocity
-          });
+      let runningStatus = 0;
+
+      while (pos < trackEnd) {
+        const delta = readVar();
+        time += delta;
+        let statusByte = data.getUint8(pos++);
+
+        if (statusByte < 0x80) {
+          // running status
+          pos--;
+          statusByte = runningStatus;
+        } else {
+          runningStatus = statusByte;
+        }
+
+        const type = statusByte & 0xf0;
+
+        if (type === 0x90) {
+          const note = data.getUint8(pos++);
+          const velocity = data.getUint8(pos++);
+          if (velocity > 0) notes.push({ time, note, velocity });
+        } else if (type === 0x80) {
+          pos += 2; // noteOff
+        } else if (statusByte === 0xff) {
+          const metaType = data.getUint8(pos++);
+          const len = readVar();
+          pos += len;
+        } else {
+          if (type === 0xc0 || type === 0xd0) pos += 1;
+          else pos += 2;
         }
       }
     }
@@ -56,6 +110,6 @@ fileInput.onchange = async (e) => {
     output.value = JSON.stringify(notes, null, 2);
     status.textContent = `✅ 完了！ノート数: ${notes.length}`;
   } catch (err) {
-    status.textContent = "⚠️ エラー内容: " + JSON.stringify(err, Object.getOwnPropertyNames(err));
+    status.textContent = "⚠️ エラー: " + err.message;
   }
 };
