@@ -29,10 +29,17 @@ fileInput.onchange = async (e) => {
   try {
     const arrayBuffer = await file.arrayBuffer();
     status.textContent = "🎵 MIDI解析中...";
-    const midi = parseMidi(arrayBuffer);
+
+    // ✅ Safari対策: ArrayBuffer → Uint8Array
+    const midi = parseMidi(new Uint8Array(arrayBuffer));
+
+    if (!midi || !midi.tracks) {
+      throw new Error("MIDIの解析に失敗しました（結果がundefined）");
+    }
 
     const notes = [];
     for (const track of midi.tracks) {
+      if (!Array.isArray(track)) continue;
       let time = 0;
       for (const event of track) {
         time += event.deltaTime;
@@ -48,8 +55,7 @@ fileInput.onchange = async (e) => {
 
     output.value = JSON.stringify(notes, null, 2);
     status.textContent = `✅ 完了！ノート数: ${notes.length}`;
-    } catch (err) {
+  } catch (err) {
     status.textContent = "⚠️ エラー内容: " + JSON.stringify(err, Object.getOwnPropertyNames(err));
   }
-
 };
