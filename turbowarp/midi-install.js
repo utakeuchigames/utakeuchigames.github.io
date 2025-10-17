@@ -1,28 +1,3 @@
-document.body.innerHTML = `
-  <h2>デバッグ付きMIDIリーダー</h2>
-  <input id="file" type="file" accept=".mid"><br><br>
-  <div id="status">📂 ファイルを選んでください</div>
-  <pre id="log" style="background:#eee;padding:8px;white-space:pre-wrap;"></pre>
-`;
-
-const status = document.getElementById("status");
-const log = document.getElementById("log");
-
-document.getElementById("file").onchange = async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  status.textContent = "読み込み中...";
-  try {
-    const buf = await file.arrayBuffer();
-    const notes = parseMIDI(buf);
-    status.textContent = `✅ 完了！ノート数: ${notes.length}`;
-    log.textContent += "\n✅ ノート一覧:\n" + JSON.stringify(notes.slice(0, 10), null, 2);
-  } catch (err) {
-    status.textContent = "⚠️ エラー: " + err.message;
-    log.textContent += "\n❌ エラー詳細:\n" + err.stack;
-  }
-};
-
 function parseMIDI(buffer) {
   const data = new DataView(buffer);
   let pos = 0;
@@ -31,16 +6,8 @@ function parseMIDI(buffer) {
     for (let i = 0; i < n; i++) s += String.fromCharCode(data.getUint8(pos++));
     return s;
   };
-  const read32 = () => {
-    const v = data.getUint32(pos, false); // ✅ ビッグエンディアン明示
-    pos += 4;
-    return v;
-  };
-  const read16 = () => {
-    const v = data.getUint16(pos, false);
-    pos += 2;
-    return v;
-  };
+  const read32 = () => { const v = data.getUint32(pos, false); pos += 4; return v; };
+  const read16 = () => { const v = data.getUint16(pos, false); pos += 2; return v; };
   const readVar = () => {
     let v = 0;
     while (true) {
@@ -51,30 +18,29 @@ function parseMIDI(buffer) {
     return v;
   };
 
-  // --- ヘッダー解析 ---
-  const header = readStr(4);
-  if (header !== "MThd") throw new Error("MIDIヘッダーが不正です: " + header);
+  // --- ヘッダー ---
+  if (readStr(4) !== "MThd") throw new Error("MIDIヘッダーが不正です");
   const headerLen = read32();
   const format = read16();
-  const tracks = read16();
+  const declaredTracks = read16();
   const division = read16();
 
-  log.textContent = `Header=${header}, Len=${headerLen}, Format=${format}, Tracks=${tracks}, Division=${division}\npos=${pos}\n`;
-
-  // 🩹 ここはズレないよう headerLen-6 を削除
   const notes = [];
+  let trackCount = 0;
 
-  // --- トラック解析 ---
-  for (let t = 0; t < tracks; t++) {
-    const chunk = readStr(4);
-    log.textContent += `Track[${t}] chunk=${chunk}\npos=${pos}\n`;
-    if (chunk !== "MTrk") throw new Error(`トラックが見つかりません (chunk=${chunk})`);
-
+  // --- MTrk が見つかる限り読む ---
+  while (pos < data.byteLength) {
+    const id = readStr(4);
+    if (id !== "MTrk") {
+      // MTrkが無くなったら終了（End of Trackなど）
+      break;
+    }
+    trackCount++;
     const trackEnd = pos + read32();
     let time = 0;
     let runningStatus = 0;
 
-    while (pos < trackEnd) {
+    while (pos < trackEnd && pos < data.byteLength) {
       const delta = readVar();
       time += delta;
       let status = data.getUint8(pos++);
@@ -106,5 +72,6 @@ function parseMIDI(buffer) {
     }
   }
 
+  console.log(`解析完了: 宣言トラック=${declaredTracks}, 実際=${trackCount}`);
   return notes;
 }
