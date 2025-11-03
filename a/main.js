@@ -2,39 +2,38 @@
 const videoFileInput = document.getElementById('videoFileInput');
 const videoPlayer = document.getElementById('videoPlayer');
 const fileNameDisplay = document.getElementById('fileNameDisplay');
-let baseName = "no data"
+let baseName = "no data";
+
 // ファイル選択時のイベントリスナー
 videoFileInput.addEventListener('change', function(event) {
-    // 選択されたファイルを取得
-    const files = event.target.files;
-
-    if (files && files.length > 0) {
-        const file = files[0];
-
-        // ファイル名を取得して表示
-        fileNameDisplay.textContent = file.name;
-        // ファイル名から拡張子を除いたタイトルを設定
-baseName = file.name.replace(/\.[^/.]+$/, ""); 
-document.title = baseName;
-        // 古いオブジェクトURLを開放（メモリリーク防止）
-        if (videoPlayer.src) {
-            URL.revokeObjectURL(videoPlayer.src);
-        }
-
-        // createObjectURLで一時URLを作成
-        const blobURL = URL.createObjectURL(file);
-
-        // videoタグに反映
-        videoPlayer.src = blobURL;
-       setTimeout(() => {
-  videoPlayer.load();
-  // videoPlayer.play(); // 必要なら
-}, 200);
-
-        // 必要なら自動再生
-        // videoPlayer.play();
-    } else {
+    const file = event.target.files?.[0];
+    if (!file) {
         fileNameDisplay.textContent = 'ファイルが選択されていません';
         videoPlayer.src = '';
+        return;
     }
+
+    // ファイル名を表示
+    fileNameDisplay.textContent = file.name;
+
+    // デバッグ出力（確認用）
+    console.log("file.name =", JSON.stringify(file.name));
+
+    // ファイル名から拡張子を除いたタイトルを設定（大文字・空白対応）
+    baseName = file.name.replace(/\.[^/.]+$/i, "").trim();
+    document.title = baseName;
+
+    // 古いオブジェクトURLを破棄
+    if (videoPlayer.src) {
+        URL.revokeObjectURL(videoPlayer.src);
+    }
+
+    // createObjectURLで一時URLを作成
+    const blobURL = URL.createObjectURL(file);
+
+    // videoタグに反映（iOS対策：遅延ロード）
+    videoPlayer.src = blobURL;
+    setTimeout(() => {
+        videoPlayer.load();
+    }, 200);
 });
