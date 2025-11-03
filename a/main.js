@@ -25,7 +25,10 @@ videoFileInput.addEventListener('change', function(event) {
 
         // videoタグに反映
         videoPlayer.src = blobURL;
-        videoPlayer.load(); // 明示的にロード（iOS対策）
+       setTimeout(() => {
+  videoPlayer.load();
+  // videoPlayer.play(); // 必要なら
+}, 200);
 
         // 必要なら自動再生
         // videoPlayer.play();
