@@ -13,8 +13,9 @@ videoFileInput.addEventListener('change', function(event) {
 
         // ファイル名を取得して表示
         fileNameDisplay.textContent = file.name;
-        document.title = file.name;
-
+        // ファイル名から拡張子を除いたタイトルを設定
+const baseName = file.name.replace(/\.[^/.]+$/, ""); 
+document.title = baseName;
         // 古いオブジェクトURLを開放（メモリリーク防止）
         if (videoPlayer.src) {
             URL.revokeObjectURL(videoPlayer.src);
