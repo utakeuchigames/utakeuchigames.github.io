@@ -7,23 +7,28 @@ const fileNameDisplay = document.getElementById('fileNameDisplay');
 videoFileInput.addEventListener('change', function(event) {
     // 選択されたファイルを取得
     const files = event.target.files;
-    
+
     if (files && files.length > 0) {
         const file = files[0];
-        
+
         // ファイル名を取得して表示
         fileNameDisplay.textContent = file.name;
-        
-        // FileReaderを使用して動画ファイルを読み込み、video要素のsrcに設定
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            videoPlayer.src = e.target.result;
-            videoPlayer.load(); // 動画をロード
-            // videoPlayer.play(); // 必要であれば自動再生
-        };
-        reader.readAsDataURL(file); // ファイルをDataURLとして読み込む
-      document.title = file.name;
+        document.title = file.name;
 
+        // 古いオブジェクトURLを開放（メモリリーク防止）
+        if (videoPlayer.src) {
+            URL.revokeObjectURL(videoPlayer.src);
+        }
+
+        // createObjectURLで一時URLを作成
+        const blobURL = URL.createObjectURL(file);
+
+        // videoタグに反映
+        videoPlayer.src = blobURL;
+        videoPlayer.load(); // 明示的にロード（iOS対策）
+
+        // 必要なら自動再生
+        // videoPlayer.play();
     } else {
         fileNameDisplay.textContent = 'ファイルが選択されていません';
         videoPlayer.src = '';
