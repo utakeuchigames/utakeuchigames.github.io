@@ -2,7 +2,7 @@
 const videoFileInput = document.getElementById('videoFileInput');
 const videoPlayer = document.getElementById('videoPlayer');
 const fileNameDisplay = document.getElementById('fileNameDisplay');
-
+let baseName = "no data"
 // ファイル選択時のイベントリスナー
 videoFileInput.addEventListener('change', function(event) {
     // 選択されたファイルを取得
@@ -14,7 +14,7 @@ videoFileInput.addEventListener('change', function(event) {
         // ファイル名を取得して表示
         fileNameDisplay.textContent = file.name;
         // ファイル名から拡張子を除いたタイトルを設定
-const baseName = file.name.replace(/\.[^/.]+$/, ""); 
+baseName = file.name.replace(/\.[^/.]+$/, ""); 
 document.title = baseName;
         // 古いオブジェクトURLを開放（メモリリーク防止）
         if (videoPlayer.src) {
