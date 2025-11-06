@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>動画埋め込みとファイル名表示</title>
+    <link rel="manifest" href="./manifest.json">
 </head>
 <body>
     <h2>動画ファイルの選択と埋め込み</h2>
@@ -16,7 +17,13 @@
     
     <h3>ファイル名</h3>
     <p id="fileNameDisplay">ファイルが選択されていません</p>
-
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./service-worker.js')
+    .then(() => console.log('✅ Service Worker registered'))
+    .catch(err => console.error('⚠️ SW registration failed:', err));
+}
+</script>
     <script src="main.js"></script>
 </body>
 </html>
