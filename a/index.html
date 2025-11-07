@@ -16,12 +16,13 @@
 <body>
     <h2>動画ファイルの選択と埋め込み</h2>
     <!-- accept="video/*" で動画ファイルのみを選択可能にする -->
-    <input type="file" id="videoFileInput" accept="video/*">
+    <input type="file" id="videoFileInput" accept="video/*,audio/*">
     
     <h3>選択された動画</h3>
     <video id="videoPlayer" controls width="400">
         お使いのブラウザは動画タグをサポートしていません。
     </video>
+    
     
     <h3>ファイル名</h3>
     <p id="fileNameDisplay">ファイルが選択されていません</p>
