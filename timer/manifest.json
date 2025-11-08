@@ -6,7 +6,7 @@
   	"categories": ["music"],
   "icons": [
     {
-    "src": "./icon.ico",
+    "src": "./../icon.ico",
     "sizes": "48x48 72x72 96x96 128x128 192x192 256x256 512x512",
     "type": "image/vnd.microsoft.icon",
     "purpose": "any maskable"
