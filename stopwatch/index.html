@@ -337,8 +337,9 @@ if ('serviceWorker' in navigator) {
     };
     run().catch(handleError);
   </script>
-  <script>
-// ✅ 通知の権限をリクエスト
+  <button id="notifyBtn">InfinityFree 通知をテスト</button>
+
+<script>
 async function requestNotificationPermission() {
   if (!("Notification" in window)) {
     alert("通知APIがサポートされていません");
@@ -348,7 +349,6 @@ async function requestNotificationPermission() {
   return permission === "granted";
 }
 
-// ✅ InfinityFreeから通知データ取得して表示
 async function showServerNotification() {
   const allowed = await requestNotificationPermission();
   if (!allowed) {
@@ -373,8 +373,7 @@ async function showServerNotification() {
   }
 }
 
-// 起動時に実行
-showServerNotification();
+document.getElementById("notifyBtn").addEventListener("click", showServerNotification);
 </script>
 
 </body>
