@@ -337,5 +337,45 @@ if ('serviceWorker' in navigator) {
     };
     run().catch(handleError);
   </script>
+  <script>
+// ✅ 通知の権限をリクエスト
+async function requestNotificationPermission() {
+  if (!("Notification" in window)) {
+    alert("通知APIがサポートされていません");
+    return false;
+  }
+  const permission = await Notification.requestPermission();
+  return permission === "granted";
+}
+
+// ✅ InfinityFreeから通知データ取得して表示
+async function showServerNotification() {
+  const allowed = await requestNotificationPermission();
+  if (!allowed) {
+    alert("通知が許可されていません");
+    return;
+  }
+
+  try {
+    const res = await fetch("https://yamaki3970.free.nf/api/notify_test.php");
+    const data = await res.json();
+
+    if (data.status === "ok") {
+      new Notification(data.title, {
+        body: data.body,
+        icon: "./icon.png"
+      });
+    } else {
+      alert("通知データの取得に失敗しました");
+    }
+  } catch (err) {
+    console.error("通知取得エラー:", err);
+  }
+}
+
+// 起動時に実行
+showServerNotification();
+</script>
+
 </body>
 </html>
