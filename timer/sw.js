@@ -1,51 +1,40 @@
-// sw.js
-
-const CACHE_NAME = 'my-site-cache-v1';
+// service-worker.js
+const CACHE_NAME = 'timer-cache-v1';
 const urlsToCache = [
-  '/',
-  '/index.html',
-  '/script.js'
+  './',
+  './index.html',
+  './main.js',
+  './manifest.json',
+  './icon.ico',
+  './assets/'
 ];
 
-// インストールイベント
-self.addEventListener('install', (event) => {
-  // キャッシュの準備
+// 💾 インストール時にキャッシュ作成
+self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('Opened cache');
-        return cache.addAll(urlsToCache);
-      })
+      .then(cache => cache.addAll(urlsToCache))
+      .then(() => self.skipWaiting())
   );
 });
 
-// アクティブ化イベント
-self.addEventListener('activate', (event) => {
-  const cacheWhitelist = [CACHE_NAME];
+// ♻️ 古いキャッシュを削除（更新対応）
+self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheWhitelist.indexOf(cacheName) === -1) {
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
+    caches.keys().then(names =>
+      Promise.all(names.map(name => {
+        if (name !== CACHE_NAME) return caches.delete(name);
+      }))
+    )
   );
+  self.clients.claim();
 });
 
-// フェッチイベント
-self.addEventListener('fetch', (event) => {
+// 🌐 通信時：キャッシュ優先で取得
+self.addEventListener('fetch', event => {
   event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        // キャッシュから取得
-        if (response) {
-          return response;
-        }
-        // キャッシュにない場合はネットワークから取得
-        return fetch(event.request);
-      })
+    caches.match(event.request).then(response =>
+      response || fetch(event.request)
+    )
   );
 });
