@@ -379,7 +379,7 @@ async function showServerNotification() {
     if (data.status === "ok") {
       new Notification(data.title, {
         body: data.body,
-        icon: "./icon.png"
+        icon: "./icon.svg"
       });
     } else {
       alert("通知データの取得に失敗しました");
