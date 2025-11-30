@@ -26,7 +26,19 @@ let nextNoteIndex = 0;  // 次に出現させるノーツデータのインデ�
 let isGameRunning = false;
 let gameTime = 0;       // ゲームが始まってからの時間 (秒)
 let lastTimestamp = 0;  // 前回 gameLoop が呼ばれた時刻 (ミリ秒)
+// --- 2. 外部 JSONファイルを読み込む関数 (非同期処理) の前に追記 ---
 
+// 画面ログ出力関数 (iPad単体デバッグ用)
+// 画面上の <div id="log"> にメッセージを追加します
+function logToScreen(message) {
+    const logElement = document.getElementById('log');
+    if (logElement) {
+        // 現在のログに新しいメッセージを追加し、HTMLタグを無視して表示
+        logElement.innerHTML += `<p>${message}</p>`; 
+        // ログが画面外に流れた場合、一番下にスクロールする
+        logElement.scrollTop = logElement.scrollHeight;
+    }
+}
 
 // --- 2. 外部 JSONファイルを読み込む関数 (非同期処理) ---
 async function loadScore(url) {
@@ -38,7 +50,7 @@ async function loadScore(url) {
         const data = await response.json(); 
         
         NOTE_DATA = data.notes;
-        console.log(`スコアデータ ${NOTE_DATA.length} 件を読み込みました。`);
+        logToScreen(`スコアデータ ${NOTE_DATA.length} 件を読み込みました。`);
         
         // ノーツの状態を初期化してstartGameを呼び出す
         NOTE_DATA.forEach(note => {
@@ -55,12 +67,7 @@ async function loadScore(url) {
 }
 
 // 画面ログ出力 (iPad単体デバッグ用)
-function logToScreen(message) {
-    const logElement = document.getElementById('log');
-    if (logElement) {
-        logElement.innerHTML = `<p>${message}</p>`; 
-    }
-}
+
 
 // --- 3. ゲーム開始と入力イベントの設定 ---
 
@@ -145,7 +152,7 @@ function update(deltaTime) {
         
         if (gameTime >= endTime) {
             // 終了時間に達した！ (ホールド成功とみなし削除)
-            console.log("HOLD END! 成功として削除");
+            logToScreen("HOLD END! 成功として削除");
             activeNotes.splice(i, 1); 
         }
     }
@@ -180,12 +187,12 @@ function processJudgement(tappedLane) {
                 // タップノーツ: 即座に削除
                 spliceIndex = i;
                 judged = true;
-                console.log(`TAP PERFECT!`);
+                logToScreen(`TAP PERFECT!`);
             } else if (note.type === 1) {
                 // ロングノーツ: ホールド状態に移行し、即座に削除しない
                 activeNotes[i].state = NOTE_STATE.HELD; 
                 judged = true;
-                console.log(`HOLD START!`);
+                logToScreen(`HOLD START!`);
             }
             break; 
         }
