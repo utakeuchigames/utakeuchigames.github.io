@@ -3,7 +3,7 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d'); 
 
 // 描画とロジックに関する定数
-const LANE_COUNT = 4;           // レーンの数 (必要に応じて6に変更してください)
+const LANE_COUNT = 6;           // レーンの数 (必要に応じて6に変更してください)
 const JUDGEMENT_LINE_Y = 550;   // 判定ラインのY座標 
 const NOTE_APPEAR_Y = 50;       // ノーツが出現するY座標
 const NOTE_TRAVEL_TIME = 1.5;   // ノーツが上から下まで移動する時間 (秒)
