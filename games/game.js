@@ -225,4 +225,40 @@ function processJudgement(tappedLane) {
                 // ロングノーツ: ホールド状態に移行
                 activeNotes[i].state = NOTE_STATE.HELD; 
                 judged = true;
-                // ★修正: logToScreen
+                // ★修正: logToScreenに出力
+                logToScreen(`HOLD START! Lane ${tappedLane}`); 
+            }
+            break; 
+        }
+    }
+    
+    if (judged && spliceIndex !== -1) {
+        activeNotes.splice(spliceIndex, 1);
+    }
+}
+
+// --- 6. 描画処理 (省略) ---
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawLanes();
+    drawJudgementLine();
+
+    activeNotes.forEach(note => {
+        drawNote(note);
+    });
+
+    // デバッグ情報
+    ctx.fillStyle = 'white';
+    ctx.font = '20px Arial';
+    ctx.fillText(`Time: ${gameTime.toFixed(2)}s`, 10, 30);
+    ctx.fillText(`Notes: ${activeNotes.length}`, 10, 60);
+    ctx.fillText(`Held: ${Object.keys(heldLanes).join(', ')}`, 10, 90); 
+}
+
+// 描画補助関数 (省略)
+function drawJudgementLine() { /* ... */ }
+function drawLanes() { /* ... */ }
+function drawNote(note) { /* ... */ }
+
+// --- 7. ゲームの実行開始 (省略) ---
+loadScore('score.json');
