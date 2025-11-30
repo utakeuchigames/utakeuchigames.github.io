@@ -3,7 +3,7 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d'); 
 
 // 描画とロジックに関する定数
-const LANE_COUNT = 6;           // ★変更点: レーン数を4から6に変更
+const LANE_COUNT = 6;           
 const JUDGEMENT_LINE_Y = 550;   
 const NOTE_APPEAR_Y = 50;       
 const NOTE_TRAVEL_TIME = 1.5;   
@@ -12,10 +12,10 @@ const NOTE_HALF_SIZE = NOTE_SIZE / 2;
 
 // 判定のタイミングウィンドウ (秒単位)
 const JUDGEMENT_WINDOW = {
-    PERFECT: 0.015,   // ± 15ミリ秒 (PERFECT!!!)
-    BRILLIANT: 0.030, // ± 30ミリ秒 (BRILLIANT!!)
-    GREAT: 0.060,     // ± 60ミリ秒 (GREAT!)
-    BAD: 0.120        // ± 120ミリ秒 (BAD)
+    PERFECT: 0.015,
+    BRILLIANT: 0.030,
+    GREAT: 0.060,
+    BAD: 0.120
 };
 const MAX_JUDGEMENT_TIME = JUDGEMENT_WINDOW.BAD; 
 
@@ -166,7 +166,6 @@ function getTappedLane(event) {
     }
 
     const clickX = clientX - rect.left;
-    // ★変更点: レーン幅の計算にLANE_COUNTを使用
     const laneWidth = canvas.width / LANE_COUNT; 
     const tappedLane = Math.floor(clickX / laneWidth) + 1;
     return tappedLane;
@@ -180,7 +179,7 @@ function handleStartHold(event) {
     processJudgement(tappedLane); 
 }
 
-// 指を離す/マウスアップ時の処理 (ホールド終了) (変更なし)
+// 指を離す/マウスアップ時の処理 (ホールド終了)
 function handleEndHold(event) {
     if (!isGameRunning) return;
 
@@ -193,13 +192,16 @@ function handleEndHold(event) {
         if (note.type === 1 && note.state === NOTE_STATE.HELD && note.lane === releasedLane) {
             const endTime = note.time + (note.duration || 0);
             
+            // 早期リリース
             if (gameTime < endTime) {
+                
                 const tapScore = note.tapScore;
                 const holdScore = 1; 
                 
                 const finalScore = (tapScore + holdScore) / 2;
                 const finalJudgment = getJudgmentNameFromScore(finalScore);
                 
+                // ★修正点: 早期リリース時は画面に評価テキストを表示
                 showJudgementText(`LONG ${finalJudgment} (Early Release)`); 
                 logToScreen(`LONG ${finalJudgment} (Early Release)! Lane ${releasedLane}`); 
                 
@@ -220,7 +222,7 @@ function handleEndHold(event) {
 }
 
 
-// --- 4. メインループと更新処理 (変更なし) ---
+// --- 4. メインループと更新処理 ---
 
 function gameLoop(timestamp) {
     if (!isGameRunning) return;
@@ -234,7 +236,7 @@ function gameLoop(timestamp) {
     requestAnimationFrame(gameLoop);
 }
 
-// ゲーム状態の更新 (変更なし)
+// ゲーム状態の更新
 function update(deltaTime) {
     gameTime += deltaTime; 
     
@@ -281,7 +283,7 @@ function update(deltaTime) {
 
         const endTime = note.time + (note.duration || 0);
         
-        // ホールド成功判定
+        // ホールド成功判定 (終了時刻に達し、まだホールドが続いている)
         if (gameTime >= endTime && heldLanes[note.lane]) {
             
             const tapScore = note.tapScore;
@@ -290,6 +292,7 @@ function update(deltaTime) {
             const finalScore = (tapScore + holdScore) / 2;
             const finalJudgment = getJudgmentNameFromScore(finalScore);
             
+            // ★修正点: ホールド完了時のみ画面に評価テキストを表示
             showJudgementText(`LONG ${finalJudgment} COMPLETE!`);
             logToScreen(`LONG ${finalJudgment} COMPLETE! Lane ${note.lane}`); 
             
@@ -304,7 +307,7 @@ function update(deltaTime) {
     }
 }
 
-// --- 5. 判定ロジック (変更なし) ---
+// --- 5. 判定ロジック ---
 
 function processJudgement(tappedLane) {
     let spliceIndex = -1; 
@@ -334,11 +337,13 @@ function processJudgement(tappedLane) {
         }
 
         if (judgment) {
-            showJudgementText(judgment); 
             const tapScore = getJudgmentScore(judgment);
 
             if (note.type === 0) {
                 // タップノーツ
+                // ★修正点: タップノーツの場合のみ画面に評価テキストを表示
+                showJudgementText(judgment); 
+                
                 if (judgment !== 'BAD') {
                     currentCombo++;
                     maxCombo = Math.max(maxCombo, currentCombo);
@@ -359,6 +364,8 @@ function processJudgement(tappedLane) {
                 judged = true;
                 logToScreen(`HOLD START (${judgment})! Lane ${tappedLane}`); 
                 
+                // ★修正点: ロングノーツは開始時は画面に評価テキストを表示しない
+
                 // ロングノーツのタップ開始時がBADの場合、コンボをリセット
                 if (judgment === 'BAD') {
                     if (currentCombo > 0) {
@@ -410,7 +417,7 @@ function draw() {
 }
 
 // =========================================================
-// 描画補助関数
+// 描画補助関数 (LANE_COUNT=6に対応済み)
 // =========================================================
 
 function drawJudgementLine() {
@@ -422,7 +429,6 @@ function drawJudgementLine() {
     ctx.stroke();
 }
 
-// ★変更点: レーン区切り線を描画
 function drawLanes() {
     const laneWidth = canvas.width / LANE_COUNT;
     ctx.strokeStyle = '#555'; 
@@ -437,13 +443,11 @@ function drawLanes() {
     }
 }
 
-// ★変更点: ノーツの位置と描画サイズを調整
 function drawNote(note) {
     const timeRemaining = note.time - gameTime; 
     const travelDistance = JUDGEMENT_LINE_Y - NOTE_APPEAR_Y; 
     let noteY = NOTE_APPEAR_Y + travelDistance * (NOTE_TRAVEL_TIME - timeRemaining) / NOTE_TRAVEL_TIME;
 
-    // ★変更点: レーン幅の計算にLANE_COUNTを使用
     const laneWidth = canvas.width / LANE_COUNT;
     const x = (note.lane - 1) * laneWidth + (laneWidth - NOTE_SIZE) / 2;
 
