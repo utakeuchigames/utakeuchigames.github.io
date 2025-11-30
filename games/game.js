@@ -176,7 +176,8 @@ function getTappedLane(event) {
 function handleStartHold(event) {
     if (!isGameRunning) return;
     const rect = canvas.getBoundingClientRect();
-    
+
+    event.preventDefault();
     let targets = []; // 処理対象の座標リスト
 
     if (event.touches) {
@@ -204,7 +205,7 @@ function handleStartHold(event) {
 function handleEndHold(event) {
     if (!isGameRunning) return;
     const rect = canvas.getBoundingClientRect();
-
+event.preventDefault();
     let targets = []; // 処理対象の座標リスト
 
     if (event.changedTouches) {
