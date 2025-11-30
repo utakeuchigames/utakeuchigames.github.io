@@ -19,23 +19,32 @@ let nextNoteIndex = 0;  // 次に出現させるノーツデータのインデ�
 let isGameRunning = false;
 let gameTime = 0;       // ゲームが始まってからの時間 (秒)
 let lastTimestamp = 0;  // 前回 gameLoop が呼ばれた時刻 (ミリ秒)
+function logToScreen(message) {
+    const logElement = document.getElementById('log');
+    if (logElement) {
+        logElement.innerHTML += `<p>${message}</p>`; 
+    }
+}
+
+// 既存の loadScore 関数内のエラー処理を修正
+
 
 // --- 2. 外部 JSONファイルを読み込む関数 ---
 // サーバーから譜面データ 'score.json' を非同期で取得する
 async function loadScore(url) {
     try {
-        console.log("スコアファイルを読み込み中...");
+        logToScreen("スコアファイルを読み込み中...");
         const response = await fetch(url); 
         const data = await response.json(); 
         
         // 外部JSONの "notes" 配列を NOTE_DATA に格納
         NOTE_DATA = data.notes;
-        console.log(`スコアデータ ${NOTE_DATA.length} 件を読み込みました。`);
+        logToScreen(`スコアデータ ${NOTE_DATA.length} 件を読み込みました。`);
         
         startGame(); // データ読み込み後にゲームを開始
         
     } catch (error) {
-        console.error("スコアファイルの読み込み中にエラーが発生しました:", error);
+        logToScreen("スコアファイルの読み込み中にエラーが発生しました:", error);
     }
 }
 
@@ -136,7 +145,7 @@ function processJudgement(tappedLane) {
         
         if (timeDifference <= JUDGEMENT_TOLERANCE) {
             // PERFECT判定成功！
-            console.log(`PERFECT! Lane ${tappedLane}, Diff: ${timeDifference.toFixed(3)}s`);
+            logToScreen(`PERFECT! Lane ${tappedLane}, Diff: ${timeDifference.toFixed(3)}s`);
             spliceIndex = i;
             break; 
         }
