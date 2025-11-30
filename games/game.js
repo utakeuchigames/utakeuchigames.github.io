@@ -3,7 +3,7 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d'); 
 
 // 描画とロジックに関する定数 (省略)
-const LANE_COUNT = 4;           
+const LANE_COUNT = 6;           
 const JUDGEMENT_LINE_Y = 550;   
 const NOTE_APPEAR_Y = 50;       
 const NOTE_TRAVEL_TIME = 1.5;   
