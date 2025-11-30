@@ -2,23 +2,23 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d'); 
 
-// 描画とロジックに関する定数 (省略)
-const LANE_COUNT = 4;          
-const JUDGEMENT_LINE_Y = 550;   
-const NOTE_APPEAR_Y = 50;       
-const NOTE_TRAVEL_TIME = 1.5;   
-const JUDGEMENT_TOLERANCE = 0.1; 
-const NOTE_SIZE = 50;           
+// 描画とロジックに関する定数
+const LANE_COUNT = 4;           // レーンの数 (必要に応じて6に変更してください)
+const JUDGEMENT_LINE_Y = 550;   // 判定ラインのY座標 
+const NOTE_APPEAR_Y = 50;       // ノーツが出現するY座標
+const NOTE_TRAVEL_TIME = 1.5;   // ノーツが上から下まで移動する時間 (秒)
+const JUDGEMENT_TOLERANCE = 0.1; // 判定の許容誤差 (±0.1秒 = 100ms)
+const NOTE_SIZE = 50;           // ノーツの一辺の長さ (ピクセル)
 const NOTE_HALF_SIZE = NOTE_SIZE / 2;
 
-// ノーツの状態定数 (省略)
+// ノーツの状態定数
 const NOTE_STATE = {
     DEFAULT: 0,
-    HELD: 1,      
-    JUDGED: 2     
+    HELD: 1,      // ロングノーツがホールドされている状態
+    JUDGED: 2     // 判定済み
 };
 
-// 状態変数 (省略)
+// 状態変数
 let NOTE_DATA = [];     
 let activeNotes = [];   
 let nextNoteIndex = 0;  
@@ -52,7 +52,6 @@ async function loadScore(url) {
         startGame(); 
         
     } catch (error) {
-        // ★修正: JSON読み込みエラーをlogToScreenに出力し、console.errorは残す
         logToScreen(`ERROR: [${error.message}] ファイルが見つからないか、JSON形式が不正です。`);
         console.error("スコアファイルの読み込み中にエラーが発生しました:", error); 
     }
@@ -67,7 +66,7 @@ function logToScreen(message) {
     }
 }
 
-// --- 3. ゲーム開始と入力イベントの設定 (省略) ---
+// --- 3. ゲーム開始と入力イベントの設定 ---
 function startGame() {
     isGameRunning = true;
     
@@ -81,7 +80,7 @@ function startGame() {
     requestAnimationFrame(gameLoop);   
 }
 
-// どのレーンがタップされたかを計算する補助関数 (省略)
+// どのレーンがタップされたかを計算する補助関数
 function getTappedLane(event) {
     event.preventDefault(); 
     const rect = canvas.getBoundingClientRect();
@@ -120,7 +119,6 @@ function handleEndHold(event) {
         if (note.type === 1 && note.state === NOTE_STATE.HELD && note.lane === releasedLane) {
             const endTime = note.time + (note.duration || 0);
             if (gameTime < endTime) {
-                // ★修正: console.log を logToScreen に変更
                 logToScreen(`HOLD FAIL (Released early)! Lane ${releasedLane}`); 
                 activeNotes.splice(i, 1);
             }
@@ -183,12 +181,11 @@ function update(deltaTime) {
             delete heldLanes[note.lane];
         }
         
-        // MISS判定 (判定ラインを大きく過ぎてしまったタップノーツ/未ホールドのロングノーツの処理)
-        if (note.type === 0 || note.type === 1) {
+        // MISS判定 (ノーツが判定ラインを大きく過ぎてしまった場合の処理)
+        if (note.type === 0 || (note.type === 1 && note.state !== NOTE_STATE.HELD)) {
             if (gameTime > note.time + JUDGEMENT_TOLERANCE * 2) { 
-                // ★修正: MISS判定ログをlogToScreenに出力 (ここではノーツ削除は行わない)
                 logToScreen(`MISS! Lane ${note.lane}`);
-                // activeNotes.splice(i, 1); // 簡略化のため削除は一旦保留
+                activeNotes.splice(i, 1); // ここでミスノーツを削除
             }
         }
     }
@@ -219,13 +216,11 @@ function processJudgement(tappedLane) {
                 // タップノーツ: 即座に削除
                 spliceIndex = i;
                 judged = true;
-                // ★修正: logToScreenに出力
                 logToScreen(`TAP PERFECT! Lane ${tappedLane}`); 
             } else if (note.type === 1) {
                 // ロングノーツ: ホールド状態に移行
                 activeNotes[i].state = NOTE_STATE.HELD; 
                 judged = true;
-                // ★修正: logToScreenに出力
                 logToScreen(`HOLD START! Lane ${tappedLane}`); 
             }
             break; 
@@ -237,9 +232,12 @@ function processJudgement(tappedLane) {
     }
 }
 
-// --- 6. 描画処理 (省略) ---
+// --- 6. 描画処理 ---
+
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // ★描画補助関数の呼び出し
     drawLanes();
     drawJudgementLine();
 
@@ -255,10 +253,71 @@ function draw() {
     ctx.fillText(`Held: ${Object.keys(heldLanes).join(', ')}`, 10, 90); 
 }
 
-// 描画補助関数 (省略)
-function drawJudgementLine() { /* ... */ }
-function drawLanes() { /* ... */ }
-function drawNote(note) { /* ... */ }
+// =========================================================
+// ★★★ 描画補助関数（欠落していた部分） ★★★
+// =========================================================
 
-// --- 7. ゲームの実行開始 (省略) ---
+function drawJudgementLine() {
+    ctx.strokeStyle = '#00FFFF'; // シアン色
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(0, JUDGEMENT_LINE_Y);
+    ctx.lineTo(canvas.width, JUDGEMENT_LINE_Y);
+    ctx.stroke();
+}
+
+function drawLanes() {
+    const laneWidth = canvas.width / LANE_COUNT;
+    ctx.strokeStyle = '#555'; 
+    ctx.lineWidth = 2;         
+
+    for (let i = 1; i < LANE_COUNT; i++) {
+        const x = i * laneWidth;
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+    }
+}
+
+function drawNote(note) {
+    // Y座標の計算 (ノーツがどこにあるか)
+    const timeRemaining = note.time - gameTime; 
+    const travelDistance = JUDGEMENT_LINE_Y - NOTE_APPEAR_Y; 
+    let noteY = NOTE_APPEAR_Y + travelDistance * (NOTE_TRAVEL_TIME - timeRemaining) / NOTE_TRAVEL_TIME;
+
+    // X座標の計算
+    const laneWidth = canvas.width / LANE_COUNT;
+    const x = (note.lane - 1) * laneWidth + (laneWidth - NOTE_SIZE) / 2;
+
+    // ロングノーツの描画
+    if (note.type === 1) {
+        const duration = note.duration || 1.0; 
+        const endTime = note.time + duration;
+        const endTimeRemaining = endTime - gameTime;
+        
+        let endNoteY = NOTE_APPEAR_Y + travelDistance * (NOTE_TRAVEL_TIME - endTimeRemaining) / NOTE_TRAVEL_TIME;
+        
+        // ロングノーツの本体（線）の描画 
+        ctx.fillStyle = (note.state === NOTE_STATE.HELD) ? '#00FF00' : 'blue'; // 緑色 or 青色
+        ctx.fillRect(x + NOTE_SIZE / 4, noteY, NOTE_HALF_SIZE, endNoteY - noteY);
+
+        // 終了ノーツ（尾）の描画
+        ctx.fillStyle = (note.state === NOTE_STATE.HELD) ? '#00AA00' : 'blue'; // 暗い緑 or 青色
+        ctx.fillRect(x, endNoteY - NOTE_HALF_SIZE, NOTE_SIZE, NOTE_SIZE);
+    }
+    
+    // タップノーツまたはロングノーツの頭（開始ノーツ）の描画
+    let headColor = '';
+    if (note.type === 0) {
+        headColor = 'red';
+    } else if (note.type === 1) {
+        headColor = (note.state === NOTE_STATE.HELD) ? 'cyan' : 'blue';
+    }
+
+    ctx.fillStyle = headColor; 
+    ctx.fillRect(x, noteY - NOTE_HALF_SIZE, NOTE_SIZE, NOTE_SIZE);
+}
+
+// --- 7. ゲームの実行開始 ---
 loadScore('score.json');
