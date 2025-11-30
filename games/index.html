@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>東方風リズムゲームデモ</title>
+    <style>
+        /* CSS: 画面全体にキャンバスを配置し、余白を消すためのスタイル */
+        body {
+            margin: 0;
+            overflow: hidden; /* スクロールバー非表示 */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #333; /* 背景色を暗めに */
+        }
+        /* キャンバス（ゲーム画面）のスタイル */
+        #gameCanvas {
+            border: 2px solid #ccc; /* 画面の枠線 */
+            background-color: #000; /* ゲーム画面の背景を黒に */
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+
+    <script src="game.js"></script>
+</body>
+</html>
