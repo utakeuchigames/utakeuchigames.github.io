@@ -62,6 +62,8 @@ function startGame() {
 
 // タップ（クリック）イベント処理
 function handleTap(event) {
+    event.preventDefault(); 
+    
     if (!isGameRunning) return;
 
     // クリック位置からどのレーンがタップされたか計算
