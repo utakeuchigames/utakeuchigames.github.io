@@ -120,3 +120,172 @@ function update(deltaTime) {
             // ノーツをアクティブリストに追加 (元のNOTE_DATAのstateをコピー)
             activeNotes.push({
                 time: noteData.time,
+                lane: noteData.lane,
+                type: noteData.type,
+                duration: noteData.duration || 0,
+                state: noteData.state 
+            });
+            nextNoteIndex++;
+        } else {
+            break; 
+        }
+    }
+
+    // 3. ホールドノーツの終了チェックと削除 (★ロングノーツ判定の継続ロジック)
+    for (let i = activeNotes.length - 1; i >= 0; i--) {
+        const note = activeNotes[i];
+        
+        // ホールド中ではないノーツはスキップ
+        if (note.state !== NOTE_STATE.HELD) {
+            continue;
+        }
+
+        // ロングノーツの終了時間
+        const endTime = note.time + (note.duration || 0);
+        
+        if (gameTime >= endTime) {
+            // 終了時間に達した！ (ホールド成功とみなし削除)
+            console.log("HOLD END! 成功として削除");
+            activeNotes.splice(i, 1); 
+        }
+    }
+}
+
+// --- 5. 判定ロジック ---
+
+function processJudgement(tappedLane) {
+    let spliceIndex = -1; 
+    let judged = false;
+    
+    // 判定ラインに近いノーツから順にチェック
+    for (let i = 0; i < activeNotes.length; i++) {
+        const note = activeNotes[i];
+        
+        // すでにホールド中のノーツは無視 (開始タップのみを処理するため)
+        if (note.state === NOTE_STATE.HELD) {
+            continue;
+        }
+
+        // レーンが一致しているか
+        if (note.lane !== tappedLane) {
+            continue; 
+        }
+        
+        // 時間的に判定範囲内か 
+        const timeDifference = Math.abs(note.time - gameTime);
+        
+        if (timeDifference <= JUDGEMENT_TOLERANCE) {
+            
+            if (note.type === 0) {
+                // タップノーツ: 即座に削除
+                spliceIndex = i;
+                judged = true;
+                console.log(`TAP PERFECT!`);
+            } else if (note.type === 1) {
+                // ロングノーツ: ホールド状態に移行し、即座に削除しない
+                activeNotes[i].state = NOTE_STATE.HELD; 
+                judged = true;
+                console.log(`HOLD START!`);
+            }
+            break; 
+        }
+    }
+    
+    // タップノーツが成功した場合のみ削除
+    if (judged && spliceIndex !== -1) {
+        activeNotes.splice(spliceIndex, 1);
+    }
+}
+
+
+// --- 6. 描画処理 ---
+
+function draw() {
+    // 画面全体をクリア
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // レーンと判定ラインの描画
+    drawLanes();
+    drawJudgementLine();
+
+    // アクティブなノーツを一つずつ描画
+    activeNotes.forEach(note => {
+        drawNote(note);
+    });
+
+    // デバッグ情報
+    ctx.fillStyle = 'white';
+    ctx.font = '20px Arial';
+    ctx.fillText(`Time: ${gameTime.toFixed(2)}s`, 10, 30);
+    ctx.fillText(`Notes: ${activeNotes.length}`, 10, 60);
+}
+
+// 描画補助関数: 判定ライン
+function drawJudgementLine() {
+    ctx.strokeStyle = '#00FFFF'; // シアン色
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(0, JUDGEMENT_LINE_Y);
+    ctx.lineTo(canvas.width, JUDGEMENT_LINE_Y);
+    ctx.stroke();
+}
+
+// 描画補助関数: レーン
+function drawLanes() {
+    const laneWidth = canvas.width / LANE_COUNT;
+    ctx.strokeStyle = '#555'; 
+    ctx.lineWidth = 2;         
+
+    for (let i = 1; i < LANE_COUNT; i++) {
+        const x = i * laneWidth;
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+    }
+}
+
+// 描画補助関数: ノーツ
+function drawNote(note) {
+    // Y座標の計算 (ロジックの核)
+    const timeRemaining = note.time - gameTime; 
+    const travelDistance = JUDGEMENT_LINE_Y - NOTE_APPEAR_Y; 
+    let noteY = NOTE_APPEAR_Y + travelDistance * (NOTE_TRAVEL_TIME - timeRemaining) / NOTE_TRAVEL_TIME;
+
+    // X座標の計算
+    const laneWidth = canvas.width / LANE_COUNT;
+    const x = (note.lane - 1) * laneWidth + (laneWidth - NOTE_SIZE) / 2;
+
+    // ロングノーツの描画
+    if (note.type === 1) {
+        const duration = note.duration || 1.0; 
+        const endTime = note.time + duration;
+        const endTimeRemaining = endTime - gameTime;
+        
+        let endNoteY = NOTE_APPEAR_Y + travelDistance * (NOTE_TRAVEL_TIME - endTimeRemaining) / NOTE_TRAVEL_TIME;
+        
+        // ロングノーツの本体（線）の描画 (★ホールド中は緑色)
+        ctx.fillStyle = (note.state === NOTE_STATE.HELD) ? '#00FF00' : 'blue'; 
+        ctx.fillRect(x + NOTE_SIZE / 4, noteY, NOTE_HALF_SIZE, endNoteY - noteY);
+
+        // 終了ノーツ（尾）の描画
+        ctx.fillStyle = (note.state === NOTE_STATE.HELD) ? '#00AA00' : 'blue'; 
+        ctx.fillRect(x, endNoteY - NOTE_HALF_SIZE, NOTE_SIZE, NOTE_SIZE);
+    }
+    
+    // タップノーツまたはロングノーツの頭（開始ノーツ）の描画
+    let headColor = '';
+    if (note.type === 0) {
+        headColor = 'red';
+    } else if (note.type === 1) {
+        // ★ホールド中はシアン（水色）にする
+        headColor = (note.state === NOTE_STATE.HELD) ? 'cyan' : 'blue';
+    }
+
+    ctx.fillStyle = headColor; 
+    ctx.fillRect(x, noteY - NOTE_HALF_SIZE, NOTE_SIZE, NOTE_SIZE);
+}
+
+// --- 7. ゲームの実行開始 ---
+// スコアファイルの読み込みから全てが始まる
+loadScore('score.json');
