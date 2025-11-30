@@ -1,0 +1,24 @@
+{
+    "song_title": "Enhanced Editor Score",
+    "bpm": 210,
+    "notes": [
+        {
+            "time": 0.2857,
+            "lane": 1,
+            "type": 1,
+            "duration": 2
+        },
+        {
+            "time": 0.2857,
+            "lane": 6,
+            "type": 1,
+            "duration": 2
+        },
+        {
+            "time": 0.2857,
+            "lane": 3,
+            "type": 1,
+            "duration": 2
+        }
+    ]
+}
