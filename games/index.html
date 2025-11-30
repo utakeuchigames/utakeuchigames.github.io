@@ -20,6 +20,9 @@
         
         /* カーソルをデフォルトに戻す（ドラッグ防止） */
         cursor: default;
+            -webkit-touch-callout: none; /* iOSでリンクなどを長押しした時のメニューを無効化 */
+        -webkit-tap-highlight-color: transparent; /* タップ時のグレーのハイライトを非表示 */
+        touch-action: none; /* タッチ操作によるブラウザの既定の動作 (スクロール, ピンチ) を無効化 */
         }
         /* キャンバス（ゲーム画面）のスタイル */
         #gameCanvas {
