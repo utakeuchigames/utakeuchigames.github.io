@@ -3,19 +3,27 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d'); 
 
 // 描画とロジックに関する定数
-const LANE_COUNT = 6;           // レーンの数 (必要に応じて6に変更してください)
-const JUDGEMENT_LINE_Y = 550;   // 判定ラインのY座標 
-const NOTE_APPEAR_Y = 50;       // ノーツが出現するY座標
-const NOTE_TRAVEL_TIME = 1.5;   // ノーツが上から下まで移動する時間 (秒)
-const JUDGEMENT_TOLERANCE = 0.1; // 判定の許容誤差 (±0.1秒 = 100ms)
-const NOTE_SIZE = 50;           // ノーツの一辺の長さ (ピクセル)
+const LANE_COUNT = 6;           
+const JUDGEMENT_LINE_Y = 550;   
+const NOTE_APPEAR_Y = 50;       
+const NOTE_TRAVEL_TIME = 1.5;   
+const NOTE_SIZE = 50;           
 const NOTE_HALF_SIZE = NOTE_SIZE / 2;
+
+// 判定のタイミングウィンドウ (秒単位)
+const JUDGEMENT_WINDOW = {
+    PERFECT: 0.015,   // ± 15ミリ秒 (最も厳しい)
+    BRILLIANT: 0.030, // ± 30ミリ秒
+    GREAT: 0.060,     // ± 60ミリ秒
+    BAD: 0.120        // ± 120ミリ秒 (BAD判定)
+};
+const MAX_JUDGEMENT_TIME = JUDGEMENT_WINDOW.BAD; 
 
 // ノーツの状態定数
 const NOTE_STATE = {
     DEFAULT: 0,
-    HELD: 1,      // ロングノーツがホールドされている状態
-    JUDGED: 2     // 判定済み
+    HELD: 1,      
+    JUDGED: 2     
 };
 
 // 状態変数
@@ -28,6 +36,8 @@ let gameTime = 0;
 let lastTimestamp = 0;  
 
 let heldLanes = {}; 
+
+let judgementTimeout = null; // ★新規追加: 判定テキスト表示管理用
 
 
 // --- 2. 外部 JSONファイルを読み込む関数 (非同期処理) ---
@@ -57,7 +67,7 @@ async function loadScore(url) {
     }
 }
 
-// 画面ログ出力関数
+// 画面ログ出力関数 (デバッグ用)
 function logToScreen(message) {
     const logElement = document.getElementById('log');
     if (logElement) {
@@ -65,6 +75,39 @@ function logToScreen(message) {
         logElement.scrollTop = logElement.scrollHeight;
     }
 }
+
+// ★新規関数: 判定テキストを画面右に出力
+function showJudgementText(judgment) {
+    const textElement = document.getElementById('judgementText');
+    if (!textElement) return;
+
+    // 前のタイマーをクリア
+    if (judgementTimeout) {
+        clearTimeout(judgementTimeout);
+    }
+
+    // テキストと色を設定
+    textElement.textContent = judgment;
+    textElement.style.opacity = 1;
+    
+    let color = 'white';
+    switch (judgment.split(' ')[0]) { // スペースで区切って最初の単語をチェック
+        case 'PERFECT!!!': color = '#FFD700'; break; // ゴールド
+        case 'BRILLIANT!!': color = '#00FFFF'; break; // シアン
+        case 'GREAT!': color = '#FF69B4'; break; // ホットピンク
+        case 'BAD': color = '#ADD8E6'; break; // ライトブルー
+        case 'MISS': color = '#FF4500'; break; // オレンジレッド
+    }
+    textElement.style.color = color;
+
+
+    // 0.5秒後にテキストをクリア（アニメーション効果）
+    judgementTimeout = setTimeout(() => {
+        textElement.style.opacity = 0;
+        textElement.textContent = '---';
+    }, 500); 
+}
+
 
 // --- 3. ゲーム開始と入力イベントの設定 ---
 function startGame() {
@@ -119,6 +162,8 @@ function handleEndHold(event) {
         if (note.type === 1 && note.state === NOTE_STATE.HELD && note.lane === releasedLane) {
             const endTime = note.time + (note.duration || 0);
             if (gameTime < endTime) {
+                // ホールド失敗時はMISSとして扱う
+                showJudgementText(`MISS (HOLD FAIL)`); 
                 logToScreen(`HOLD FAIL (Released early)! Lane ${releasedLane}`); 
                 activeNotes.splice(i, 1);
             }
@@ -169,6 +214,13 @@ function update(deltaTime) {
         const note = activeNotes[i];
         
         if (note.state !== NOTE_STATE.HELD) {
+            
+            // MISS判定 (ノーツが判定ラインを大きく過ぎてしまった場合の処理)
+            if (gameTime > note.time + MAX_JUDGEMENT_TIME * 2) { 
+                showJudgementText(`MISS (Too Late)`); // 画面にMISS表示
+                logToScreen(`MISS! Lane ${note.lane} (Too Late)`);
+                activeNotes.splice(i, 1); 
+            }
             continue;
         }
 
@@ -176,17 +228,10 @@ function update(deltaTime) {
         
         // ホールド成功判定
         if (gameTime >= endTime && heldLanes[note.lane]) {
+            showJudgementText(`LONG PERFECT!!!`); // 画面にLONG PERFECT!!!表示
             logToScreen(`LONG PERFECT! Lane ${note.lane}`); 
             activeNotes.splice(i, 1); 
             delete heldLanes[note.lane];
-        }
-        
-        // MISS判定 (ノーツが判定ラインを大きく過ぎてしまった場合の処理)
-        if (note.type === 0 || (note.type === 1 && note.state !== NOTE_STATE.HELD)) {
-            if (gameTime > note.time + JUDGEMENT_TOLERANCE * 2) { 
-                logToScreen(`MISS! Lane ${note.lane}`);
-                activeNotes.splice(i, 1); // ここでミスノーツを削除
-            }
         }
     }
 }
@@ -200,28 +245,41 @@ function processJudgement(tappedLane) {
     for (let i = 0; i < activeNotes.length; i++) {
         const note = activeNotes[i];
         
-        if (note.state === NOTE_STATE.HELD) {
-            continue;
-        }
-
-        if (note.lane !== tappedLane) {
+        if (note.state === NOTE_STATE.HELD || note.lane !== tappedLane) {
             continue; 
         }
         
         const timeDifference = Math.abs(note.time - gameTime);
-        
-        if (timeDifference <= JUDGEMENT_TOLERANCE) {
-            
+        let judgment = null; 
+
+        // 判定ウィンドウのチェック
+        if (timeDifference <= JUDGEMENT_WINDOW.PERFECT) {
+            judgment = 'PERFECT!!!';
+        } else if (timeDifference <= JUDGEMENT_WINDOW.BRILLIANT) {
+            judgment = 'BRILLIANT!!';
+        } else if (timeDifference <= JUDGEMENT_WINDOW.GREAT) {
+            judgment = 'GREAT!';
+        } else if (timeDifference <= JUDGEMENT_WINDOW.BAD) {
+            judgment = 'BAD';
+        } else {
+            continue; 
+        }
+
+        // 判定が成功した場合
+        if (judgment) {
+            // 判定テキストを画面に表示
+            showJudgementText(judgment); 
+
             if (note.type === 0) {
-                // タップノーツ: 即座に削除
+                // タップノーツ
                 spliceIndex = i;
                 judged = true;
-                logToScreen(`TAP PERFECT! Lane ${tappedLane}`); 
+                logToScreen(`TAP ${judgment} Lane ${tappedLane}`); 
             } else if (note.type === 1) {
-                // ロングノーツ: ホールド状態に移行
+                // ロングノーツ
                 activeNotes[i].state = NOTE_STATE.HELD; 
                 judged = true;
-                logToScreen(`HOLD START! Lane ${tappedLane}`); 
+                logToScreen(`HOLD START (${judgment})! Lane ${tappedLane}`); 
             }
             break; 
         }
@@ -237,7 +295,6 @@ function processJudgement(tappedLane) {
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    // ★描画補助関数の呼び出し
     drawLanes();
     drawJudgementLine();
 
@@ -254,11 +311,11 @@ function draw() {
 }
 
 // =========================================================
-// ★★★ 描画補助関数（欠落していた部分） ★★★
+// 描画補助関数
 // =========================================================
 
 function drawJudgementLine() {
-    ctx.strokeStyle = '#00FFFF'; // シアン色
+    ctx.strokeStyle = '#00FFFF'; 
     ctx.lineWidth = 4;
     ctx.beginPath();
     ctx.moveTo(0, JUDGEMENT_LINE_Y);
@@ -281,12 +338,10 @@ function drawLanes() {
 }
 
 function drawNote(note) {
-    // Y座標の計算 (ノーツがどこにあるか)
     const timeRemaining = note.time - gameTime; 
     const travelDistance = JUDGEMENT_LINE_Y - NOTE_APPEAR_Y; 
     let noteY = NOTE_APPEAR_Y + travelDistance * (NOTE_TRAVEL_TIME - timeRemaining) / NOTE_TRAVEL_TIME;
 
-    // X座標の計算
     const laneWidth = canvas.width / LANE_COUNT;
     const x = (note.lane - 1) * laneWidth + (laneWidth - NOTE_SIZE) / 2;
 
@@ -298,12 +353,10 @@ function drawNote(note) {
         
         let endNoteY = NOTE_APPEAR_Y + travelDistance * (NOTE_TRAVEL_TIME - endTimeRemaining) / NOTE_TRAVEL_TIME;
         
-        // ロングノーツの本体（線）の描画 
-        ctx.fillStyle = (note.state === NOTE_STATE.HELD) ? '#00FF00' : 'blue'; // 緑色 or 青色
+        ctx.fillStyle = (note.state === NOTE_STATE.HELD) ? '#00FF00' : 'blue'; 
         ctx.fillRect(x + NOTE_SIZE / 4, noteY, NOTE_HALF_SIZE, endNoteY - noteY);
 
-        // 終了ノーツ（尾）の描画
-        ctx.fillStyle = (note.state === NOTE_STATE.HELD) ? '#00AA00' : 'blue'; // 暗い緑 or 青色
+        ctx.fillStyle = (note.state === NOTE_STATE.HELD) ? '#00AA00' : 'blue'; 
         ctx.fillRect(x, endNoteY - NOTE_HALF_SIZE, NOTE_SIZE, NOTE_SIZE);
     }
     
