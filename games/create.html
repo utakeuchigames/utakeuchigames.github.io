@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>音符エディター風ジェネレーター</title>
+    <style>
+        body { font-family: 'Arial', sans-serif; padding: 20px; background-color: #1e1e1e; color: #d4d4d4; }
+        h1, h2 { color: #00FFFF; border-bottom: 1px solid #00FFFF; padding-bottom: 5px; margin-top: 20px; }
+        .controls, .editor-area { background: #2d2d2d; padding: 15px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input[type="text"], input[type="number"] { padding: 8px; margin-right: 15px; border: 1px solid #555; background: #3c3c3c; color: #fff; border-radius: 4px; }
+        button { padding: 10px 15px; background-color: #00FFFF; color: #1e1e1e; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; transition: background-color 0.2s; margin-right: 10px; }
+        button:hover { background-color: #00DDDD; }
+        textarea { width: 100%; height: 350px; padding: 10px; border: 1px solid #555; background: #3c3c3c; color: #fff; border-radius: 4px; box-sizing: border-box; resize: vertical; margin-top: 10px; font-family: 'Consolas', 'Courier New', monospace; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+    <h1>🎼 音符データエディター風ジェネレーター</h1>
+
+    <div class="controls">
+        <h2>基本情報設定</h2>
+        <label for="title">曲名:</label>
+        <input type="text" id="title" value="Editor Generated Score">
+
+        <label for="bpm">BPM:</label>
+        <input type="number" id="bpm" value="160.0" step="0.1">
+
+        <label for="startBeat">開始拍:</label>
+        <input type="number" id="startBeat" value="0" step="1" title="譜面の開始拍 (例: 4拍でイントロを空けたい場合、4から始める)">
+        
+        <label for="startTime">開始時刻 (秒):</label>
+        <input type="number" id="startTime" value="0.0" step="0.1" title="ゲーム開始からのオフセット秒">
+    </div>
+
+    <div class="editor-area">
+        <h2>譜面定義エリア (コードを編集してください)</h2>
+        <p>ノーツは `addTap()` または `addLong()` 関数を使って、**拍数ベース**で定義できます。</p>
+        <p>例: `addTap(2.0, [1, 6]);` // 2拍目にレーン1と6で同時押し</p>
+        
+        <button onclick="generateAndDisplayScore()">生成してJSONを表示</button>
+        <button onclick="downloadScore()">JSONをダウンロード</button>
+    </div>
+    
+    <div id="outputArea">
+        <h2>生成されたJSONデータ</h2>
+        <textarea id="jsonOutput" readonly>ボタンを押してスコアを生成してください...</textarea>
+    </div>
+
+    <script>
+        // --- 1. 定数とグローバル変数 ---
+        const NOTE_TYPE_TAP = 0;
+        const NOTE_TYPE_LONG = 1;
+
+        // 生成中のノーツリスト
+        let currentNotes = [];
+        let currentBPM = 0;
+        let secPerBeat = 0;
+        let startOffsetTime = 0;
+
+        /**
+         * 小数点を指定された桁数に丸めるヘルパー関数
+         */
+        function round(value, decimals) {
+            return Number(Math.round(value + 'e' + decimals) + 'e-' + decimals);
+        }
+
+        // --- 2. 譜面定義ヘルパー関数 ---
+
+        /**
+         * タップノーツを定義します。
+         * @param {number} beat - 曲の開始からの拍数 (例: 4.5拍目)
+         * @param {number[]} lanes - ノーツを配置するレーン番号の配列 (例: [1, 3, 5])
+         */
+        function addTap(beat, lanes) {
+            const time = round(startOffsetTime + (beat * secPerBeat), 4);
+            lanes.forEach(lane => {
+                currentNotes.push({ 
+                    "time": time, 
+                    "lane": lane, 
+                    "type": NOTE_TYPE_TAP 
+                });
+            });
+        }
+
+        /**
+         * ロングノーツを定義します。
+         * @param {number} start_beat - ロングノーツの開始拍数
+         * @param {number} duration_beats - ロングノーツの長さ (拍数)
+         * @param {number[]} lanes - ノーツを配置するレーン番号の配列
+         */
+        function addLong(start_beat, duration_beats, lanes) {
+            const time = round(startOffsetTime + (start_beat * secPerBeat), 4);
+            const duration_sec = round(duration_beats * secPerBeat, 4);
+            
+            lanes.forEach(lane => {
+                currentNotes.push({ 
+                    "time": time, 
+                    "lane": lane, 
+                    "type": NOTE_TYPE_LONG,
+                    "duration": duration_sec
+                });
+            });
+        }
+
+        // --- 3. メインロジック: 譜面をコードで定義する場所 ---
+
+        /**
+         * ユーザーが編集する譜面定義コードを実行する関数。
+         * 拍数ベースで定義を行い、ノーツリストを生成します。
+         */
+        function defineScorePattern(startBeat) {
+            // 初期化
+            currentNotes = [];
+            
+            // 拍数のオフセットを考慮した現在の拍数
+            let currentBeat = startBeat;
+
+            // =========================================================
+            // ▼▼▼▼▼ 譜面定義コードはここから記述 ▼▼▼▼▼
+            // =========================================================
+            
+            // 1. イントロ 4拍待機 (startBeatでカバーされる)
+            
+            // --- セクション A: 交互連打 ---
+            
+            // 1拍ごとにレーン1と6を交互にタップ (4拍分)
+            currentBeat += 1.0; addTap(currentBeat, [1]);
+            currentBeat += 1.0; addTap(currentBeat, [6]);
+            currentBeat += 1.0; addTap(currentBeat, [1]);
+            currentBeat += 1.0; addTap(currentBeat, [6]);
+            
+            // --- セクション B: 階段 (1/4拍) ---
+            
+            currentBeat += 1.0; // 1拍空ける
+            
+            for (let i = 0; i < 6; i++) {
+                currentBeat += 0.25; // 1/4拍
+                addTap(currentBeat, [i + 1]);
+            }
+            
+            // --- セクション C: ロングノーツ (同時押し) ---
+            
+            currentBeat += 1.75; // 1.75拍空ける
+            
+            // 3拍ロングノーツをレーン2と5に同時配置
+            const longDurationBeats = 3.0;
+            addLong(currentBeat, longDurationBeats, [2, 5]);
+
+            // ロングノーツの頭打ちと同時にタップノーツ
+            addTap(currentBeat, [1, 6]);
+
+            // ロングノーツの途中のタップ (1.5拍目)
+            addTap(currentBeat + 1.5, [3, 4]);
+
+            currentBeat += longDurationBeats; // ロングノーツの長さ分、時間を進める
+            
+            // --- セクション D: 複合 ---
+            currentBeat += 2.0; // 2拍空ける
+
+            // 1拍ごとに2レーン同時タップ
+            for (let i = 0; i < 4; i++) {
+                currentBeat += 1.0;
+                addTap(currentBeat, [2, 5]);
+            }
+
+            // =========================================================
+            // ▲▲▲▲▲ 譜面定義コードはここまで記述 ▲▲▲▲▲
+            // =========================================================
+
+            // ノーツを時間順にソート
+            currentNotes.sort((a, b) => a.time - b.time);
+
+            return currentNotes;
+        }
+
+
+        // --- 4. UI連携とファイル出力 ---
+
+        function generateAndDisplayScore() {
+            const title = document.getElementById('title').value;
+            currentBPM = parseFloat(document.getElementById('bpm').value);
+            const startBeat = parseFloat(document.getElementById('startBeat').value);
+            startOffsetTime = parseFloat(document.getElementById('startTime').value);
+            
+            if (isNaN(currentBPM) || currentBPM <= 0) {
+                alert('BPMには正の数値を入力してください。');
+                return;
+            }
+            
+            secPerBeat = 60.0 / currentBPM;
+
+            try {
+                const notes = defineScorePattern(startBeat);
+                
+                const scoreData = {
+                    "song_title": title,
+                    "bpm": currentBPM,
+                    "notes": notes
+                };
+                
+                const jsonString = JSON.stringify(scoreData, null, 4);
+                
+                document.getElementById('jsonOutput').value = jsonString;
+                console.log("スコア生成完了:", scoreData);
+
+            } catch (error) {
+                document.getElementById('jsonOutput').value = `[ERROR] 譜面定義コードでエラーが発生しました:\n${error.message}`;
+                console.error("スコア生成エラー:", error);
+                alert(`スコア生成中にエラーが発生しました: ${error.message}`);
+            }
+        }
+
+        function downloadScore() {
+            const jsonString = document.getElementById('jsonOutput').value;
+            if (!jsonString || jsonString.includes("ボタンを押して") || jsonString.includes("[ERROR]")) {
+                alert("先に有効なスコアを生成してください。");
+                return;
+            }
+
+            const title = document.getElementById('title').value.replace(/[^a-z0-9]/gi, '_');
+            const filename = `${title}_score.json`;
+            
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            alert(`✅ ファイル '${filename}' をダウンロードしました。`);
+        }
+        
+    </script>
+
+</body>
+</html>
