@@ -357,7 +357,7 @@
             }
 
             const title = document.getElementById('title').value.replace(/[^a-z0-9]/gi, '_');
-            const filename = `${title}_score.json`;
+            const filename = `score.json`;
             
             const blob = new Blob([jsonString], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
