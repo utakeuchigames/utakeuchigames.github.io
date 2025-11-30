@@ -13,6 +13,13 @@
             justify-content: center;
             align-items: center;
             background-color: #333; /* 背景色を暗めに */
+            -webkit-user-select: none; /* Safari/Chrome (iOS含む) 用 */
+        -moz-user-select: none;    /* Firefox 用 */
+        -ms-user-select: none;     /* IE/Edge 用 */
+        user-select: none;         /* 標準 */
+        
+        /* カーソルをデフォルトに戻す（ドラッグ防止） */
+        cursor: default;
         }
         /* キャンバス（ゲーム画面）のスタイル */
         #gameCanvas {
@@ -20,6 +27,7 @@
             background-color: #000; /* ゲーム画面の背景を黒に */
         }
     </style>
+    
 </head>
     <body>
     <div id="log" style="color: yellow; position: absolute; top: 10px; left: 10px; z-index: 10;"></div>
