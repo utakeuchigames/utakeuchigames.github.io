@@ -60,7 +60,6 @@ function getJudgmentScore(judgmentName) {
 
 // 数値スコアを判定名に変換
 function getJudgmentNameFromScore(score) {
-    // スコアを丸め、0から4の範囲に収める
     const roundedScore = Math.min(4, Math.max(0, Math.round(score)));
     
     switch (roundedScore) {
@@ -153,7 +152,7 @@ function startGame() {
     requestAnimationFrame(gameLoop);   
 }
 
-// どのレーンがタップされたかを計算する補助関数
+// どのレーンがタップされたかを計算する補助関数 (変更なし)
 function getTappedLane(event) {
     event.preventDefault(); 
     const rect = canvas.getBoundingClientRect();
@@ -179,7 +178,7 @@ function handleStartHold(event) {
     processJudgement(tappedLane); 
 }
 
-// 指を離す/マウスアップ時の処理 (ホールド終了)
+// 指を離す/マウスアップ時の処理 (ホールド終了) (変更なし)
 function handleEndHold(event) {
     if (!isGameRunning) return;
 
@@ -201,10 +200,10 @@ function handleEndHold(event) {
                 const finalScore = (tapScore + holdScore) / 2;
                 const finalJudgment = getJudgmentNameFromScore(finalScore);
                 
-                // ★修正点: 早期リリース時は画面に評価テキストを表示
                 showJudgementText(`LONG ${finalJudgment} (Early Release)`); 
                 logToScreen(`LONG ${finalJudgment} (Early Release)! Lane ${releasedLane}`); 
                 
+                // コンボ判定（早期リリース）
                 if (finalJudgment !== 'BAD' && finalJudgment !== 'MISS') {
                     currentCombo++;
                     maxCombo = Math.max(maxCombo, currentCombo);
@@ -236,7 +235,7 @@ function gameLoop(timestamp) {
     requestAnimationFrame(gameLoop);
 }
 
-// ゲーム状態の更新
+// ゲーム状態の更新 (変更なし)
 function update(deltaTime) {
     gameTime += deltaTime; 
     
@@ -271,6 +270,7 @@ function update(deltaTime) {
                 showJudgementText(`MISS (Too Late)`); 
                 logToScreen(`MISS! Lane ${note.lane} (Too Late)`);
                 
+                // コンボリセット
                 if (currentCombo > 0) {
                     logToScreen(`COMBO BREAK: MISS (${currentCombo})`);
                 }
@@ -283,7 +283,7 @@ function update(deltaTime) {
 
         const endTime = note.time + (note.duration || 0);
         
-        // ホールド成功判定 (終了時刻に達し、まだホールドが続いている)
+        // ホールド成功判定
         if (gameTime >= endTime && heldLanes[note.lane]) {
             
             const tapScore = note.tapScore;
@@ -292,10 +292,10 @@ function update(deltaTime) {
             const finalScore = (tapScore + holdScore) / 2;
             const finalJudgment = getJudgmentNameFromScore(finalScore);
             
-            // ★修正点: ホールド完了時のみ画面に評価テキストを表示
             showJudgementText(`LONG ${finalJudgment} COMPLETE!`);
             logToScreen(`LONG ${finalJudgment} COMPLETE! Lane ${note.lane}`); 
             
+            // コンボ判定（ホールド完了）
             if (finalJudgment !== 'BAD' && finalJudgment !== 'MISS') {
                 currentCombo++;
                 maxCombo = Math.max(maxCombo, currentCombo);
@@ -341,9 +341,9 @@ function processJudgement(tappedLane) {
 
             if (note.type === 0) {
                 // タップノーツ
-                // ★修正点: タップノーツの場合のみ画面に評価テキストを表示
                 showJudgementText(judgment); 
                 
+                // ★シングルノーツのコンボ処理：変更なし
                 if (judgment !== 'BAD') {
                     currentCombo++;
                     maxCombo = Math.max(maxCombo, currentCombo);
@@ -364,15 +364,8 @@ function processJudgement(tappedLane) {
                 judged = true;
                 logToScreen(`HOLD START (${judgment})! Lane ${tappedLane}`); 
                 
-                // ★修正点: ロングノーツは開始時は画面に評価テキストを表示しない
-
-                // ロングノーツのタップ開始時がBADの場合、コンボをリセット
-                if (judgment === 'BAD') {
-                    if (currentCombo > 0) {
-                        logToScreen(`COMBO BREAK: BAD START (${currentCombo})`);
-                    }
-                    currentCombo = 0;
-                }
+                // ★修正点：ロングノーツ開始時はコンボを動かさない（リセットロジックを削除）
+                // コンボは次の判定（ホールド完了または早期リリース）まで維持されます。
             }
             break; 
         }
@@ -383,7 +376,7 @@ function processJudgement(tappedLane) {
     }
 }
 
-// --- 6. 描画処理 ---
+// --- 6. 描画処理 (変更なし) ---
 
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -395,7 +388,7 @@ function draw() {
         drawNote(note);
     });
 
-    // コンボ数表示 (変更なし)
+    // コンボ数表示 
     if (currentCombo > 0) {
         ctx.font = '70px Arial'; 
         ctx.fillStyle = '#FFD700'; 
@@ -407,7 +400,7 @@ function draw() {
         ctx.fillText(`COMBO`, canvas.width / 2, 270);
     }
 
-    // デバッグ情報 (変更なし)
+    // デバッグ情報 
     ctx.font = '20px Arial';
     ctx.fillStyle = 'white';
     ctx.textAlign = 'left';
