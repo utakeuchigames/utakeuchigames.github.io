@@ -45,7 +45,6 @@ let judgementTimeout = null;
 
 // --- ユーティリティ関数: 判定スコア変換 (変更なし) ---
 
-// 判定名を数値スコアに変換
 function getJudgmentScore(judgmentName) {
     switch (judgmentName) {
         case 'PERFECT!!!': return 4;
@@ -58,7 +57,6 @@ function getJudgmentScore(judgmentName) {
     }
 }
 
-// 数値スコアを判定名に変換
 function getJudgmentNameFromScore(score) {
     const roundedScore = Math.min(4, Math.max(0, Math.round(score)));
     
@@ -101,7 +99,6 @@ async function loadScore(url) {
     }
 }
 
-// 画面ログ出力関数 (変更なし)
 function logToScreen(message) {
     const logElement = document.getElementById('log');
     if (logElement) {
@@ -110,7 +107,6 @@ function logToScreen(message) {
     }
 }
 
-// 判定テキストを画面右に出力 (変更なし)
 function showJudgementText(judgment) {
     const textElement = document.getElementById('judgementText');
     if (!textElement) return;
@@ -152,77 +148,119 @@ function startGame() {
     requestAnimationFrame(gameLoop);   
 }
 
-// どのレーンがタップされたかを計算する補助関数 (変更なし)
+// ★新規追加: clientX座標からレーン番号を計算する
+function getLaneFromClientX(clientX, rect) {
+    const clickX = clientX - rect.left;
+    const laneWidth = canvas.width / LANE_COUNT;
+    const tappedLane = Math.floor(clickX / laneWidth) + 1;
+    return tappedLane;
+}
+
+// どのレーンがタップされたかを計算する補助関数 (単一のタップ時用)
 function getTappedLane(event) {
     event.preventDefault(); 
     const rect = canvas.getBoundingClientRect();
     
     let clientX;
-    if (event.touches) {
+    if (event.touches && event.touches.length > 0) {
         clientX = event.touches[0].clientX;
     } else {
         clientX = event.clientX;
     }
 
-    const clickX = clientX - rect.left;
-    const laneWidth = canvas.width / LANE_COUNT; 
-    const tappedLane = Math.floor(clickX / laneWidth) + 1;
-    return tappedLane;
+    return getLaneFromClientX(clientX, rect);
 }
 
-// タップ/マウスダウン時の処理 (ホールド開始) (変更なし)
+
+// タップ/マウスダウン時の処理 (ホールド開始)
 function handleStartHold(event) {
     if (!isGameRunning) return;
-    const tappedLane = getTappedLane(event);
-    heldLanes[tappedLane] = true;
-    // 修正なし: processJudgementは指定されたレーンに紐づくノーツ全てを処理するように変更された
-    processJudgement(tappedLane); 
+    const rect = canvas.getBoundingClientRect();
+    
+    let targets = []; // 処理対象の座標リスト
+
+    if (event.touches) {
+        // ★修正点 1: タッチイベントの場合、全ての指の座標を処理する
+        for (let i = 0; i < event.touches.length; i++) {
+            targets.push(event.touches[i].clientX);
+        }
+    } else {
+        // マウスイベントの場合、単一の座標を処理
+        targets.push(event.clientX);
+    }
+    
+    targets.forEach(clientX => {
+        const tappedLane = getLaneFromClientX(clientX, rect);
+        
+        // すでにホールド中として認識されていないレーンのみを処理
+        if (!heldLanes[tappedLane]) {
+            heldLanes[tappedLane] = true;
+            processJudgement(tappedLane); 
+        }
+    });
 }
 
-// 指を離す/マウスアップ時の処理 (ホールド終了) (変更なし)
+// 指を離す/マウスアップ時の処理 (ホールド終了)
 function handleEndHold(event) {
     if (!isGameRunning) return;
+    const rect = canvas.getBoundingClientRect();
 
-    const releasedLane = getTappedLane(event);
-    delete heldLanes[releasedLane];
-    
-    for (let i = activeNotes.length - 1; i >= 0; i--) {
-        const note = activeNotes[i];
-        
-        if (note.type === 1 && note.state === NOTE_STATE.HELD && note.lane === releasedLane) {
-            const endTime = note.time + (note.duration || 0);
-            
-            // 早期リリース
-            if (gameTime < endTime) {
-                
-                const tapScore = note.tapScore;
-                const holdScore = 1; 
-                
-                const finalScore = (tapScore + holdScore) / 2;
-                const finalJudgment = getJudgmentNameFromScore(finalScore);
-                
-                showJudgementText(`LONG ${finalJudgment} (Early Release)`); 
-                logToScreen(`LONG ${finalJudgment} (Early Release)! Lane ${releasedLane}`); 
-                
-                // コンボ判定（早期リリース）
-                if (finalJudgment !== 'BAD' && finalJudgment !== 'MISS') {
-                    currentCombo++;
-                    maxCombo = Math.max(maxCombo, currentCombo);
-                } else {
-                    if (currentCombo > 0) {
-                        logToScreen(`COMBO BREAK: EARLY RELEASE (${currentCombo})`);
-                    }
-                    currentCombo = 0;
-                }
+    let targets = []; // 処理対象の座標リスト
 
-                activeNotes.splice(i, 1);
-            } 
+    if (event.changedTouches) {
+        // ★修正点 2: タッチイベントの場合、離された全ての指の座標を処理する
+        for (let i = 0; i < event.changedTouches.length; i++) {
+            targets.push(event.changedTouches[i].clientX);
         }
+    } else {
+        // マウスイベントの場合、単一の座標を処理
+        targets.push(event.clientX);
     }
+    
+    targets.forEach(clientX => {
+        const releasedLane = getLaneFromClientX(clientX, rect);
+        delete heldLanes[releasedLane];
+        
+        // 早期リリース判定は releasedLane ごとに実行
+        for (let i = activeNotes.length - 1; i >= 0; i--) {
+            const note = activeNotes[i];
+            
+            if (note.type === 1 && note.state === NOTE_STATE.HELD && note.lane === releasedLane) {
+                const endTime = note.time + (note.duration || 0);
+                
+                // 早期リリース
+                if (gameTime < endTime) {
+                    
+                    const tapScore = note.tapScore;
+                    const holdScore = 1; 
+                    
+                    const finalScore = (tapScore + holdScore) / 2;
+                    const finalJudgment = getJudgmentNameFromScore(finalScore);
+                    
+                    showJudgementText(`LONG ${finalJudgment} (Early Release)`); 
+                    logToScreen(`LONG ${finalJudgment} (Early Release)! Lane ${releasedLane}`); 
+                    
+                    // コンボ判定（早期リリース）
+                    if (finalJudgment !== 'BAD' && finalJudgment !== 'MISS') {
+                        currentCombo++;
+                        maxCombo = Math.max(maxCombo, currentCombo);
+                    } else {
+                        if (currentCombo > 0) {
+                            logToScreen(`COMBO BREAK: EARLY RELEASE (${currentCombo})`);
+                        }
+                        currentCombo = 0;
+                    }
+
+                    activeNotes.splice(i, 1);
+                    break; // このレーンのロングノーツは処理完了
+                } 
+            }
+        }
+    });
 }
 
 
-// --- 4. メインループと更新処理 ---
+// --- 4. メインループと更新処理 (変更なし) ---
 
 function gameLoop(timestamp) {
     if (!isGameRunning) return;
@@ -236,7 +274,6 @@ function gameLoop(timestamp) {
     requestAnimationFrame(gameLoop);
 }
 
-// ゲーム状態の更新 (変更なし)
 function update(deltaTime) {
     gameTime += deltaTime; 
     
@@ -271,7 +308,6 @@ function update(deltaTime) {
                 showJudgementText(`MISS (Too Late)`); 
                 logToScreen(`MISS! Lane ${note.lane} (Too Late)`);
                 
-                // コンボリセット
                 if (currentCombo > 0) {
                     logToScreen(`COMBO BREAK: MISS (${currentCombo})`);
                 }
@@ -296,7 +332,6 @@ function update(deltaTime) {
             showJudgementText(`LONG ${finalJudgment} COMPLETE!`);
             logToScreen(`LONG ${finalJudgment} COMPLETE! Lane ${note.lane}`); 
             
-            // コンボ判定（ホールド完了）
             if (finalJudgment !== 'BAD' && finalJudgment !== 'MISS') {
                 currentCombo++;
                 maxCombo = Math.max(maxCombo, currentCombo);
@@ -311,7 +346,6 @@ function update(deltaTime) {
 // --- 5. 判定ロジック ---
 
 function processJudgement(tappedLane) {
-    // 判定されたタップノーツのインデックスを保存し、後でまとめて削除する
     let judgedNotesIndices = []; 
     
     // breakせずに、タップされたレーンの全てのノーツを処理する
@@ -326,7 +360,7 @@ function processJudgement(tappedLane) {
         const timeDifference = Math.abs(note.time - gameTime);
         let judgment = null; 
 
-        // 判定ウィンドウのチェック (TAP判定もここで決定)
+        // 判定ウィンドウのチェック 
         if (timeDifference <= JUDGEMENT_WINDOW.PERFECT) {
             judgment = 'PERFECT!!!';
         } else if (timeDifference <= JUDGEMENT_WINDOW.BRILLIANT) {
@@ -357,19 +391,17 @@ function processJudgement(tappedLane) {
                     currentCombo = 0;
                 }
                 
-                // ★修正点 1: 削除対象のインデックスをリストに追加する
                 judgedNotesIndices.push(i); 
                 logToScreen(`TAP ${judgment} Lane ${tappedLane}`); 
                 
             } else if (note.type === 1) {
-                // ロングノーツ: 初期判定スコアを保存
+                // ロングノーツ
                 activeNotes[i].tapScore = tapScore; 
                 activeNotes[i].state = NOTE_STATE.HELD; 
                 logToScreen(`HOLD START (${judgment})! Lane ${tappedLane}`); 
                 
-                // ★修正点 2: ロングノーツ開始時はコンボを動かさない（維持）
+                // ロングノーツ開始時はコンボを動かさない
             }
-            // 複数のノーツが同時に判定される可能性があるため、ここでは break しない
         }
     }
     
