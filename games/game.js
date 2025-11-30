@@ -3,7 +3,7 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d'); 
 
 // 描画とロジックに関する定数
-const LANE_COUNT = 6;           
+const LANE_COUNT = 6;           // ★変更点: レーン数を4から6に変更
 const JUDGEMENT_LINE_Y = 550;   
 const NOTE_APPEAR_Y = 50;       
 const NOTE_TRAVEL_TIME = 1.5;   
@@ -12,10 +12,10 @@ const NOTE_HALF_SIZE = NOTE_SIZE / 2;
 
 // 判定のタイミングウィンドウ (秒単位)
 const JUDGEMENT_WINDOW = {
-    PERFECT: 0.015,   // ± 15ミリ秒 (最も厳しい)
-    BRILLIANT: 0.030, // ± 30ミリ秒
-    GREAT: 0.060,     // ± 60ミリ秒
-    BAD: 0.120        // ± 120ミリ秒 (BAD判定)
+    PERFECT: 0.015,   // ± 15ミリ秒 (PERFECT!!!)
+    BRILLIANT: 0.030, // ± 30ミリ秒 (BRILLIANT!!)
+    GREAT: 0.060,     // ± 60ミリ秒 (GREAT!)
+    BAD: 0.120        // ± 120ミリ秒 (BAD)
 };
 const MAX_JUDGEMENT_TIME = JUDGEMENT_WINDOW.BAD; 
 
@@ -37,10 +37,44 @@ let lastTimestamp = 0;
 
 let heldLanes = {}; 
 
-let judgementTimeout = null; // ★新規追加: 判定テキスト表示管理用
+let currentCombo = 0;  
+let maxCombo = 0;     
+
+let judgementTimeout = null; 
 
 
-// --- 2. 外部 JSONファイルを読み込む関数 (非同期処理) ---
+// --- ユーティリティ関数: 判定スコア変換 (変更なし) ---
+
+// 判定名を数値スコアに変換
+function getJudgmentScore(judgmentName) {
+    switch (judgmentName) {
+        case 'PERFECT!!!': return 4;
+        case 'BRILLIANT!!': return 3;
+        case 'GREAT!': return 2;
+        case 'BAD': return 1;
+        case 'MISS': 
+        case 'FAIL': return 0;
+        default: return 0;
+    }
+}
+
+// 数値スコアを判定名に変換
+function getJudgmentNameFromScore(score) {
+    // スコアを丸め、0から4の範囲に収める
+    const roundedScore = Math.min(4, Math.max(0, Math.round(score)));
+    
+    switch (roundedScore) {
+        case 4: return 'PERFECT!!!';
+        case 3: return 'BRILLIANT!!';
+        case 2: return 'GREAT!';
+        case 1: return 'BAD';
+        case 0: return 'MISS';
+        default: return 'MISS';
+    }
+}
+
+
+// --- 2. 外部 JSONファイルを読み込む関数 (変更なし) ---
 async function loadScore(url) {
     try {
         logToScreen("スコアファイルを読み込み中..."); 
@@ -57,6 +91,7 @@ async function loadScore(url) {
         
         NOTE_DATA.forEach(note => {
             note.state = NOTE_STATE.DEFAULT;
+            note.tapScore = 0; 
         });
         
         startGame(); 
@@ -67,7 +102,7 @@ async function loadScore(url) {
     }
 }
 
-// 画面ログ出力関数 (デバッグ用)
+// 画面ログ出力関数 (変更なし)
 function logToScreen(message) {
     const logElement = document.getElementById('log');
     if (logElement) {
@@ -76,32 +111,27 @@ function logToScreen(message) {
     }
 }
 
-// ★新規関数: 判定テキストを画面右に出力
+// 判定テキストを画面右に出力 (変更なし)
 function showJudgementText(judgment) {
     const textElement = document.getElementById('judgementText');
     if (!textElement) return;
 
-    // 前のタイマーをクリア
     if (judgementTimeout) {
         clearTimeout(judgementTimeout);
     }
 
-    // テキストと色を設定
     textElement.textContent = judgment;
     textElement.style.opacity = 1;
     
     let color = 'white';
-    switch (judgment.split(' ')[0]) { // スペースで区切って最初の単語をチェック
-        case 'PERFECT!!!': color = '#FFD700'; break; // ゴールド
-        case 'BRILLIANT!!': color = '#00FFFF'; break; // シアン
-        case 'GREAT!': color = '#FF69B4'; break; // ホットピンク
-        case 'BAD': color = '#ADD8E6'; break; // ライトブルー
-        case 'MISS': color = '#FF4500'; break; // オレンジレッド
-    }
+    if (judgment.includes('PERFECT')) color = '#FFD700';
+    else if (judgment.includes('BRILLIANT')) color = '#00FFFF';
+    else if (judgment.includes('GREAT')) color = '#FF69B4';
+    else if (judgment.includes('BAD')) color = '#ADD8E6';
+    else if (judgment.includes('MISS') || judgment.includes('FAIL')) color = '#FF4500';
+    
     textElement.style.color = color;
 
-
-    // 0.5秒後にテキストをクリア（アニメーション効果）
     judgementTimeout = setTimeout(() => {
         textElement.style.opacity = 0;
         textElement.textContent = '---';
@@ -136,12 +166,13 @@ function getTappedLane(event) {
     }
 
     const clickX = clientX - rect.left;
-    const laneWidth = canvas.width / LANE_COUNT;
+    // ★変更点: レーン幅の計算にLANE_COUNTを使用
+    const laneWidth = canvas.width / LANE_COUNT; 
     const tappedLane = Math.floor(clickX / laneWidth) + 1;
     return tappedLane;
 }
 
-// タップ/マウスダウン時の処理 (ホールド開始)
+// タップ/マウスダウン時の処理 (ホールド開始) (変更なし)
 function handleStartHold(event) {
     if (!isGameRunning) return;
     const tappedLane = getTappedLane(event);
@@ -149,7 +180,7 @@ function handleStartHold(event) {
     processJudgement(tappedLane); 
 }
 
-// 指を離す/マウスアップ時の処理 (ホールド終了)
+// 指を離す/マウスアップ時の処理 (ホールド終了) (変更なし)
 function handleEndHold(event) {
     if (!isGameRunning) return;
 
@@ -161,18 +192,35 @@ function handleEndHold(event) {
         
         if (note.type === 1 && note.state === NOTE_STATE.HELD && note.lane === releasedLane) {
             const endTime = note.time + (note.duration || 0);
+            
             if (gameTime < endTime) {
-                // ホールド失敗時はMISSとして扱う
-                showJudgementText(`MISS (HOLD FAIL)`); 
-                logToScreen(`HOLD FAIL (Released early)! Lane ${releasedLane}`); 
+                const tapScore = note.tapScore;
+                const holdScore = 1; 
+                
+                const finalScore = (tapScore + holdScore) / 2;
+                const finalJudgment = getJudgmentNameFromScore(finalScore);
+                
+                showJudgementText(`LONG ${finalJudgment} (Early Release)`); 
+                logToScreen(`LONG ${finalJudgment} (Early Release)! Lane ${releasedLane}`); 
+                
+                if (finalJudgment !== 'BAD' && finalJudgment !== 'MISS') {
+                    currentCombo++;
+                    maxCombo = Math.max(maxCombo, currentCombo);
+                } else {
+                    if (currentCombo > 0) {
+                        logToScreen(`COMBO BREAK: EARLY RELEASE (${currentCombo})`);
+                    }
+                    currentCombo = 0;
+                }
+
                 activeNotes.splice(i, 1);
-            }
+            } 
         }
     }
 }
 
 
-// --- 4. メインループと更新処理 ---
+// --- 4. メインループと更新処理 (変更なし) ---
 
 function gameLoop(timestamp) {
     if (!isGameRunning) return;
@@ -186,7 +234,7 @@ function gameLoop(timestamp) {
     requestAnimationFrame(gameLoop);
 }
 
-// ゲーム状態の更新 (ノーツの出現や判定外れをチェック)
+// ゲーム状態の更新 (変更なし)
 function update(deltaTime) {
     gameTime += deltaTime; 
     
@@ -201,7 +249,8 @@ function update(deltaTime) {
                 lane: noteData.lane,
                 type: noteData.type,
                 duration: noteData.duration || 0,
-                state: noteData.state 
+                state: noteData.state,
+                tapScore: noteData.tapScore 
             });
             nextNoteIndex++;
         } else {
@@ -217,8 +266,14 @@ function update(deltaTime) {
             
             // MISS判定 (ノーツが判定ラインを大きく過ぎてしまった場合の処理)
             if (gameTime > note.time + MAX_JUDGEMENT_TIME * 2) { 
-                showJudgementText(`MISS (Too Late)`); // 画面にMISS表示
+                showJudgementText(`MISS (Too Late)`); 
                 logToScreen(`MISS! Lane ${note.lane} (Too Late)`);
+                
+                if (currentCombo > 0) {
+                    logToScreen(`COMBO BREAK: MISS (${currentCombo})`);
+                }
+                currentCombo = 0; 
+
                 activeNotes.splice(i, 1); 
             }
             continue;
@@ -228,15 +283,28 @@ function update(deltaTime) {
         
         // ホールド成功判定
         if (gameTime >= endTime && heldLanes[note.lane]) {
-            showJudgementText(`LONG PERFECT!!!`); // 画面にLONG PERFECT!!!表示
-            logToScreen(`LONG PERFECT! Lane ${note.lane}`); 
+            
+            const tapScore = note.tapScore;
+            const holdScore = 4;
+            
+            const finalScore = (tapScore + holdScore) / 2;
+            const finalJudgment = getJudgmentNameFromScore(finalScore);
+            
+            showJudgementText(`LONG ${finalJudgment} COMPLETE!`);
+            logToScreen(`LONG ${finalJudgment} COMPLETE! Lane ${note.lane}`); 
+            
+            if (finalJudgment !== 'BAD' && finalJudgment !== 'MISS') {
+                currentCombo++;
+                maxCombo = Math.max(maxCombo, currentCombo);
+            }
+            
             activeNotes.splice(i, 1); 
             delete heldLanes[note.lane];
         }
     }
 }
 
-// --- 5. 判定ロジック ---
+// --- 5. 判定ロジック (変更なし) ---
 
 function processJudgement(tappedLane) {
     let spliceIndex = -1; 
@@ -252,7 +320,7 @@ function processJudgement(tappedLane) {
         const timeDifference = Math.abs(note.time - gameTime);
         let judgment = null; 
 
-        // 判定ウィンドウのチェック
+        // 判定ウィンドウのチェック (TAP判定もここで決定)
         if (timeDifference <= JUDGEMENT_WINDOW.PERFECT) {
             judgment = 'PERFECT!!!';
         } else if (timeDifference <= JUDGEMENT_WINDOW.BRILLIANT) {
@@ -265,21 +333,39 @@ function processJudgement(tappedLane) {
             continue; 
         }
 
-        // 判定が成功した場合
         if (judgment) {
-            // 判定テキストを画面に表示
             showJudgementText(judgment); 
+            const tapScore = getJudgmentScore(judgment);
 
             if (note.type === 0) {
                 // タップノーツ
+                if (judgment !== 'BAD') {
+                    currentCombo++;
+                    maxCombo = Math.max(maxCombo, currentCombo);
+                } else {
+                    if (currentCombo > 0) {
+                        logToScreen(`COMBO BREAK: BAD (${currentCombo})`);
+                    }
+                    currentCombo = 0;
+                }
                 spliceIndex = i;
                 judged = true;
                 logToScreen(`TAP ${judgment} Lane ${tappedLane}`); 
             } else if (note.type === 1) {
-                // ロングノーツ
+                // ロングノーツ: 初期判定スコアを保存
+                activeNotes[i].tapScore = tapScore; 
+                
                 activeNotes[i].state = NOTE_STATE.HELD; 
                 judged = true;
                 logToScreen(`HOLD START (${judgment})! Lane ${tappedLane}`); 
+                
+                // ロングノーツのタップ開始時がBADの場合、コンボをリセット
+                if (judgment === 'BAD') {
+                    if (currentCombo > 0) {
+                        logToScreen(`COMBO BREAK: BAD START (${currentCombo})`);
+                    }
+                    currentCombo = 0;
+                }
             }
             break; 
         }
@@ -302,9 +388,22 @@ function draw() {
         drawNote(note);
     });
 
-    // デバッグ情報
-    ctx.fillStyle = 'white';
+    // コンボ数表示 (変更なし)
+    if (currentCombo > 0) {
+        ctx.font = '70px Arial'; 
+        ctx.fillStyle = '#FFD700'; 
+        ctx.textAlign = 'center';
+        ctx.fillText(`${currentCombo}`, canvas.width / 2, 230);
+        
+        ctx.font = '30px Arial';
+        ctx.fillStyle = 'white';
+        ctx.fillText(`COMBO`, canvas.width / 2, 270);
+    }
+
+    // デバッグ情報 (変更なし)
     ctx.font = '20px Arial';
+    ctx.fillStyle = 'white';
+    ctx.textAlign = 'left';
     ctx.fillText(`Time: ${gameTime.toFixed(2)}s`, 10, 30);
     ctx.fillText(`Notes: ${activeNotes.length}`, 10, 60);
     ctx.fillText(`Held: ${Object.keys(heldLanes).join(', ')}`, 10, 90); 
@@ -323,6 +422,7 @@ function drawJudgementLine() {
     ctx.stroke();
 }
 
+// ★変更点: レーン区切り線を描画
 function drawLanes() {
     const laneWidth = canvas.width / LANE_COUNT;
     ctx.strokeStyle = '#555'; 
@@ -337,11 +437,13 @@ function drawLanes() {
     }
 }
 
+// ★変更点: ノーツの位置と描画サイズを調整
 function drawNote(note) {
     const timeRemaining = note.time - gameTime; 
     const travelDistance = JUDGEMENT_LINE_Y - NOTE_APPEAR_Y; 
     let noteY = NOTE_APPEAR_Y + travelDistance * (NOTE_TRAVEL_TIME - timeRemaining) / NOTE_TRAVEL_TIME;
 
+    // ★変更点: レーン幅の計算にLANE_COUNTを使用
     const laneWidth = canvas.width / LANE_COUNT;
     const x = (note.lane - 1) * laneWidth + (laneWidth - NOTE_SIZE) / 2;
 
