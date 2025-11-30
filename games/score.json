@@ -3,6 +3,7 @@
   "bpm": 150.0,
   "notes": [
     { "time": 2.0, "lane": 1, "type": 0 },
+    { "time": 2.0, "lane": 6, "type": 0 },
     { "time": 3.0, "lane": 2, "type": 0 },
     { "time": 4.0, "lane": 3, "type": 0 },
     { "time": 5.0, "lane": 4, "type": 0 },
