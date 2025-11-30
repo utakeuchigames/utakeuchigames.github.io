@@ -175,6 +175,7 @@ function handleStartHold(event) {
     if (!isGameRunning) return;
     const tappedLane = getTappedLane(event);
     heldLanes[tappedLane] = true;
+    // 修正なし: processJudgementは指定されたレーンに紐づくノーツ全てを処理するように変更された
     processJudgement(tappedLane); 
 }
 
@@ -265,7 +266,7 @@ function update(deltaTime) {
         
         if (note.state !== NOTE_STATE.HELD) {
             
-            // MISS判定 (ノーツが判定ラインを大きく過ぎてしまった場合の処理)
+            // MISS判定 
             if (gameTime > note.time + MAX_JUDGEMENT_TIME * 2) { 
                 showJudgementText(`MISS (Too Late)`); 
                 logToScreen(`MISS! Lane ${note.lane} (Too Late)`);
@@ -310,12 +311,14 @@ function update(deltaTime) {
 // --- 5. 判定ロジック ---
 
 function processJudgement(tappedLane) {
-    let spliceIndex = -1; 
-    let judged = false;
+    // 判定されたタップノーツのインデックスを保存し、後でまとめて削除する
+    let judgedNotesIndices = []; 
     
+    // breakせずに、タップされたレーンの全てのノーツを処理する
     for (let i = 0; i < activeNotes.length; i++) {
         const note = activeNotes[i];
         
+        // タップされたレーンと一致し、まだホールドされていないノーツのみ処理
         if (note.state === NOTE_STATE.HELD || note.lane !== tappedLane) {
             continue; 
         }
@@ -343,7 +346,7 @@ function processJudgement(tappedLane) {
                 // タップノーツ
                 showJudgementText(judgment); 
                 
-                // ★シングルノーツのコンボ処理：変更なし
+                // コンボ処理
                 if (judgment !== 'BAD') {
                     currentCombo++;
                     maxCombo = Math.max(maxCombo, currentCombo);
@@ -353,26 +356,27 @@ function processJudgement(tappedLane) {
                     }
                     currentCombo = 0;
                 }
-                spliceIndex = i;
-                judged = true;
+                
+                // ★修正点 1: 削除対象のインデックスをリストに追加する
+                judgedNotesIndices.push(i); 
                 logToScreen(`TAP ${judgment} Lane ${tappedLane}`); 
+                
             } else if (note.type === 1) {
                 // ロングノーツ: 初期判定スコアを保存
                 activeNotes[i].tapScore = tapScore; 
-                
                 activeNotes[i].state = NOTE_STATE.HELD; 
-                judged = true;
                 logToScreen(`HOLD START (${judgment})! Lane ${tappedLane}`); 
                 
-                // ★修正点：ロングノーツ開始時はコンボを動かさない（リセットロジックを削除）
-                // コンボは次の判定（ホールド完了または早期リリース）まで維持されます。
+                // ★修正点 2: ロングノーツ開始時はコンボを動かさない（維持）
             }
-            break; 
+            // 複数のノーツが同時に判定される可能性があるため、ここでは break しない
         }
     }
     
-    if (judged && spliceIndex !== -1) {
-        activeNotes.splice(spliceIndex, 1);
+    // 判定されたタップノーツを、インデックスの大きい順に削除する
+    judgedNotesIndices.sort((a, b) => b - a);
+    for (const index of judgedNotesIndices) {
+        activeNotes.splice(index, 1);
     }
 }
 
