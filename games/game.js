@@ -12,10 +12,10 @@ const NOTE_HALF_SIZE = NOTE_SIZE / 2;
 
 // 判定のタイミングウィンドウ (秒単位)
 const JUDGEMENT_WINDOW = {
-    PERFECT: 0.015,
-    BRILLIANT: 0.030,
-    GREAT: 0.060,
-    BAD: 0.120
+    PERFECT: 0.040,
+    BRILLIANT: 0.060,
+    GREAT: 0.100,
+    BAD: 0.180
 };
 const MAX_JUDGEMENT_TIME = JUDGEMENT_WINDOW.BAD; 
 
