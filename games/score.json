@@ -3,35 +3,35 @@
     "bpm": 210,
     "notes": [
         {
-            "time": 0.5714,
+            "time": 1.4286,
             "lane": 1,
             "type": 1,
-            "duration": 2
+            "duration": 1.7143
         },
         {
-            "time": 0.5714,
+            "time": 1.4286,
             "lane": 3,
             "type": 1,
-            "duration": 2
+            "duration": 1.7143
         },
         {
-            "time": 0.5714,
+            "time": 1.4286,
             "lane": 6,
             "type": 1,
-            "duration": 2
+            "duration": 1.7143
         },
         {
-            "time": 2.5714,
+            "time": 3.4286,
             "lane": 1,
             "type": 0
         },
         {
-            "time": 2.5714,
+            "time": 3.4286,
             "lane": 3,
             "type": 0
         },
         {
-            "time": 2.5714,
+            "time": 3.4286,
             "lane": 6,
             "type": 0
         }
