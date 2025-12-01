@@ -161,12 +161,6 @@
             "type": 0
         },
         {
-            "time": 10.5714,
-            "lane": 4,
-            "type": 1,
-            "duration": 0.5714
-        },
-        {
             "time": 10.8571,
             "lane": 3,
             "type": 0
@@ -177,12 +171,6 @@
             "type": 0
         },
         {
-            "time": 11.1429,
-            "lane": 6,
-            "type": 1,
-            "duration": 0.5714
-        },
-        {
             "time": 11.4286,
             "lane": 2,
             "type": 0
@@ -191,12 +179,6 @@
             "time": 11.5714,
             "lane": 1,
             "type": 0
-        },
-        {
-            "time": 11.7143,
-            "lane": 5,
-            "type": 1,
-            "duration": 0.5714
         },
         {
             "time": 11.8571,
@@ -214,12 +196,6 @@
             "type": 0
         },
         {
-            "time": 12.2857,
-            "lane": 6,
-            "type": 1,
-            "duration": 0.5714
-        },
-        {
             "time": 12.5714,
             "lane": 2,
             "type": 0
@@ -230,21 +206,9 @@
             "type": 0
         },
         {
-            "time": 12.8571,
-            "lane": 4,
-            "type": 1,
-            "duration": 0.2857
-        },
-        {
             "time": 13.1429,
             "lane": 3,
             "type": 0
-        },
-        {
-            "time": 13.1429,
-            "lane": 4,
-            "type": 1,
-            "duration": 0.2857
         },
         {
             "time": 13.4286,
@@ -252,21 +216,9 @@
             "type": 0
         },
         {
-            "time": 13.4286,
-            "lane": 6,
-            "type": 1,
-            "duration": 0.2857
-        },
-        {
             "time": 13.7143,
             "lane": 2,
             "type": 0
-        },
-        {
-            "time": 13.7143,
-            "lane": 6,
-            "type": 1,
-            "duration": 0.1429
         },
         {
             "time": 13.8571,
@@ -274,21 +226,9 @@
             "type": 0
         },
         {
-            "time": 13.8571,
-            "lane": 5,
-            "type": 1,
-            "duration": 0.2857
-        },
-        {
             "time": 14.1429,
             "lane": 2,
             "type": 0
-        },
-        {
-            "time": 14.1429,
-            "lane": 5,
-            "type": 1,
-            "duration": 0.1429
         },
         {
             "time": 14.2857,
@@ -296,20 +236,8 @@
             "type": 0
         },
         {
-            "time": 14.2857,
-            "lane": 5,
-            "type": 1,
-            "duration": 0.2857
-        },
-        {
             "time": 14.5714,
             "lane": 1,
-            "type": 1,
-            "duration": 0.5714
-        },
-        {
-            "time": 14.5714,
-            "lane": 4,
             "type": 1,
             "duration": 0.5714
         }
