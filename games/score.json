@@ -3,40 +3,37 @@
     "bpm": 210,
     "notes": [
         {
-            "time": 0.2857,
+            "time": 0.5714,
             "lane": 1,
             "type": 1,
             "duration": 2
         },
         {
-            "time": 0.2857,
-            "lane": 6,
-            "type": 1,
-            "duration": 2
-        },
-        {
-            "time": 0.2857,
+            "time": 0.5714,
             "lane": 3,
             "type": 1,
             "duration": 2
         },
         {
-            "time": 2.2857,
+            "time": 0.5714,
+            "lane": 6,
+            "type": 1,
+            "duration": 2
+        },
+        {
+            "time": 2.5714,
             "lane": 1,
-            "type": 1,
-            "duration": 0.2857
+            "type": 0
         },
         {
-            "time": 2.2857,
-            "lane": 6,
-            "type": 1,
-            "duration": 0.2857
-        },
-        {
-            "time": 2.2857,
+            "time": 2.5714,
             "lane": 3,
-            "type": 1,
-            "duration": 0.2857
+            "type": 0
+        },
+        {
+            "time": 2.5714,
+            "lane": 6,
+            "type": 0
         }
     ]
 }
