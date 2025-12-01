@@ -120,38 +120,38 @@
             "duration": 1.1429
         },
         {
-            "time": 8.5714,
-            "lane": 2,
-            "type": 1,
-            "duration": 0.5714
-        },
-        {
-            "time": 8.5714,
-            "lane": 5,
-            "type": 1,
-            "duration": 0.5714
-        },
-        {
-            "time": 8.5714,
+            "time": 9.4286,
             "lane": 6,
             "type": 1,
             "duration": 0.5714
         },
         {
             "time": 9.4286,
+            "lane": 5,
+            "type": 1,
+            "duration": 0.5714
+        },
+        {
+            "time": 9.4286,
             "lane": 2,
             "type": 1,
             "duration": 0.5714
         },
         {
-            "time": 9.4286,
+            "time": 10,
             "lane": 4,
             "type": 1,
             "duration": 0.5714
         },
         {
-            "time": 9.4286,
+            "time": 10,
             "lane": 5,
+            "type": 1,
+            "duration": 0.5714
+        },
+        {
+            "time": 10,
+            "lane": 2,
             "type": 1,
             "duration": 0.5714
         }
