@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>音符データエディター (保存・読み込み対応)</title>
+    <title>音符データエディター (最終調整版)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.4.4/lz-string.min.js"></script>
     <style>
         body { font-family: 'Arial', sans-serif; padding: 20px; background-color: #1e1e1e; color: #d4d4d4; }
@@ -35,6 +35,7 @@
 <body>
 
     <h1>🎹 音符データエディター (保存・読み込み対応)</h1>
+
     <div class="controls">
         <h2>ファイル・ハッシュデータの操作</h2>
         <div class="input-group">
@@ -144,8 +145,8 @@
         const NOTE_TYPE_TAP = 0;
         const NOTE_TYPE_LONG = 1;
         
-        let currentNotes = []; // フォームから追加されるノーツを格納
-        let copiedNotes = [];  // コピー＆ペースト用
+        let currentNotes = []; 
+        let copiedNotes = [];  
         let editingNoteIndex = -1; // -1: 追加モード, 0以上: 編集モード
 
         // --- 2. ユーティリティ関数 ---
@@ -156,9 +157,6 @@
 
         // --- 3. データ永続化 (ハッシュ) ---
 
-        /** * ノーツと基本情報を圧縮し、URLのハッシュに保存する 
-         * LZString.compressToBase64を使ってデータを圧縮
-         */
         function saveToHash() {
             const dataToSave = {
                 title: document.getElementById('title').value,
@@ -171,7 +169,6 @@
                 const jsonString = JSON.stringify(dataToSave);
                 const compressed = LZString.compressToBase64(jsonString);
                 
-                // URLハッシュを更新
                 const newUrl = window.location.origin + window.location.pathname + '#' + compressed;
                 window.history.pushState(null, '', newUrl);
                 
@@ -184,9 +181,6 @@
             }
         }
 
-        /**
-         * URLのハッシュからデータを読み込み、エディターの状態を復元する
-         */
         function loadFromHash() {
             const hash = window.location.hash.substring(1);
             if (!hash) return;
@@ -218,15 +212,12 @@
                 }
             } catch(e) {
                 console.error("ハッシュからの読み込みエラー:", e);
-                alert("URLハッシュからのデータ復元に失敗しました。");
+                // alert("URLハッシュからのデータ復元に失敗しました。"); // 失敗時に毎回出すと煩わしいのでコメントアウト
             }
         }
 
         // --- 4. ファイル読み込み ---
         
-        /**
-         * JSONファイル (標準のスコア形式) を読み込み、ノーツリストに追加する
-         */
         function loadScoreFile() {
             const fileInput = document.getElementById('scoreFileInput');
             const file = fileInput.files[0];
@@ -270,7 +261,7 @@
                     // フォームを初期化
                     updateBeatFromMeasure();
                     cancelEdit();
-                    fileInput.value = ''; // 連続読み込みに備えてリセット
+                    fileInput.value = ''; 
                     
                 } catch (error) {
                     alert(`ファイルの読み込みエラー: ${error.message}`);
@@ -280,28 +271,186 @@
             reader.readAsText(file);
         }
 
-        // --- 5. 小節・拍数連携 (省略) --- (変更なし)
-        function updateBeatFromMeasure() { /* ... */ }
-        function updateMeasureFromBeat() { /* ... */ }
-        function advanceBeat(delta) { /* ... */ }
+        // --- 5. 小節・拍数連携 --- 
+        function updateBeatFromMeasure() {
+            const measure = parseInt(document.getElementById('inputMeasure').value) || 1;
+            const beatInMeasure = parseFloat(document.getElementById('inputBeatInMeasure').value) || 1.0;
+            const beatsPerMeasure = parseInt(document.getElementById('beatsPerMeasure').value) || 4;
+            
+            const absoluteBeat = (measure - 1) * beatsPerMeasure + beatInMeasure;
+            
+            document.getElementById('inputBeat').value = round(absoluteBeat, 2);
+        }
+
+        function updateMeasureFromBeat() {
+            const absoluteBeat = parseFloat(document.getElementById('inputBeat').value) || 4.0;
+            const beatsPerMeasure = parseInt(document.getElementById('beatsPerMeasure').value) || 4;
+            
+            const measure = Math.floor((absoluteBeat - 1) / beatsPerMeasure) + 1;
+            const beatInMeasure = absoluteBeat - (measure - 1) * beatsPerMeasure;
+            
+            document.getElementById('inputMeasure').value = measure;
+            document.getElementById('inputBeatInMeasure').value = round(beatInMeasure, 2);
+        }
+
+        function advanceBeat(delta) {
+            const currentBeat = parseFloat(document.getElementById('inputBeat').value);
+            document.getElementById('inputBeat').value = round(currentBeat + delta, 2);
+            updateMeasureFromBeat();
+        }
+
+        // --- 6. ノーツ操作 (追加・更新を統合) ---
+
+        function toggleDuration() {
+            const type = document.getElementById('inputType').value;
+            const durationInput = document.getElementById('inputDurationBeat');
+            durationInput.disabled = (type === String(NOTE_TYPE_TAP));
+        }
+
+        function getNoteDataFromForm() {
+            const beat = parseFloat(document.getElementById('inputBeat').value);
+            const lane = parseInt(document.getElementById('inputLane').value);
+            const type = parseInt(document.getElementById('inputType').value);
+            let durationBeats = 0;
+            
+            if (type === NOTE_TYPE_LONG) {
+                durationBeats = parseFloat(document.getElementById('inputDurationBeat').value);
+            }
+
+            if (isNaN(beat) || isNaN(lane) || lane < 1 || lane > 6 || (type === NOTE_TYPE_LONG && (isNaN(durationBeats) || durationBeats <= 0))) {
+                alert('入力値を確認してください。');
+                return null;
+            }
+
+            const noteData = { beat, lane, type };
+            if (type === NOTE_TYPE_LONG) {
+                noteData.duration_beats = durationBeats;
+            }
+            return noteData;
+        }
+
+        function handleAddOrUpdateNote() {
+            const noteData = getNoteDataFromForm();
+            if (!noteData) return;
+
+            if (editingNoteIndex === -1) {
+                // 新規追加モード
+                currentNotes.push(noteData);
+                document.getElementById('inputBeat').value = round(noteData.beat + 0.5, 2); // 次の入力補助
+                updateMeasureFromBeat();
+                alert('ノーツを追加しました。');
+            } else {
+                // 編集モード: 上書き
+                currentNotes[editingNoteIndex] = noteData;
+                cancelEdit(); // 編集モードを終了
+                alert('ノーツを更新しました。');
+            }
+            
+            sortNotesAndRefresh(); 
+        }
+
+        // --- 7. 編集機能 ---
+
+        function setFormToEditMode(index) {
+            editingNoteIndex = index;
+            const btn = document.getElementById('addUpdateButton');
+            btn.textContent = 'ノーツを更新';
+            btn.classList.add('edit-mode-btn');
+            document.getElementById('cancelEditBtn').style.display = 'inline-block';
+        }
         
-        // --- 6. ノーツ操作 (省略) --- (変更なし)
-        function toggleDuration() { /* ... */ }
-        function getNoteDataFromForm() { /* ... */ }
-        function handleAddOrUpdateNote() { /* ... */ }
-        function setFormToEditMode(index) { /* ... */ }
-        function setFormToAddMode() { /* ... */ }
-        function editNote(index) { /* ... */ }
-        function cancelEdit() { /* ... */ }
-        function clearNotes() { /* ... */ }
-        function sortNotesAndRefresh() { /* ... */ }
-        function copyNote(index) { /* ... */ }
-        function pasteNotes() { /* ... */ }
-        function deleteNote(index) { /* ... */ }
+        function setFormToAddMode() {
+            editingNoteIndex = -1;
+            const btn = document.getElementById('addUpdateButton');
+            btn.textContent = 'ノーツを追加';
+            btn.classList.remove('edit-mode-btn');
+            document.getElementById('cancelEditBtn').style.display = 'none';
+        }
+
+        function editNote(index) {
+            const note = currentNotes[index];
+            
+            document.getElementById('inputBeat').value = note.beat;
+            document.getElementById('inputLane').value = note.lane;
+            document.getElementById('inputType').value = note.type;
+            
+            toggleDuration(); 
+            
+            if (note.type === NOTE_TYPE_LONG) {
+                document.getElementById('inputDurationBeat').value = note.duration_beats;
+            } else {
+                document.getElementById('inputDurationBeat').value = '2.0'; 
+            }
+            
+            updateMeasureFromBeat(); 
+            setFormToEditMode(index);
+        }
+
+        function cancelEdit() {
+            setFormToAddMode();
+            document.getElementById('inputBeat').value = '4.0';
+            document.getElementById('inputLane').value = '1';
+            document.getElementById('inputType').value = '0';
+            toggleDuration();
+            updateMeasureFromBeat();
+        }
+
+        // --- 8. リスト操作と表示 ---
+
+        function clearNotes() {
+            if (confirm('全てのノーツを削除しますか？')) {
+                currentNotes = [];
+                cancelEdit(); 
+                refreshNoteList();
+            }
+        }
         
-        // --- 7. リスト表示と最終出力 (省略) --- (リスト表示部分のみ一部変更)
+        function sortNotesAndRefresh() {
+            currentNotes.sort((a, b) => a.beat - b.beat);
+            refreshNoteList();
+        }
+
+        function copyNote(index) {
+            copiedNotes = [currentNotes[index]]; 
+            alert(`ノーツ (拍: ${copiedNotes[0].beat}, レーン: ${copiedNotes[0].lane}) をコピーしました。`);
+        }
+        
+        function pasteNotes() {
+            if (copiedNotes.length === 0) {
+                alert("コピーするノーツがありません。");
+                return;
+            }
+
+            const pasteBeat = parseFloat(document.getElementById('pasteBeat').value);
+            if (isNaN(pasteBeat)) {
+                alert("ペースト開始拍に数値を入力してください。");
+                return;
+            }
+            
+            const minCopiedBeat = copiedNotes.reduce((min, note) => Math.min(min, note.beat), Infinity);
+            
+            copiedNotes.forEach(copiedNote => {
+                const beatDifference = copiedNote.beat - minCopiedBeat;
+                const newBeat = round(pasteBeat + beatDifference, 2);
+                
+                const newNote = { 
+                    beat: newBeat, 
+                    lane: copiedNote.lane, 
+                    type: copiedNote.type 
+                };
+                
+                if (copiedNote.duration_beats) {
+                    newNote.duration_beats = copiedNote.duration_beats;
+                }
+                
+                currentNotes.push(newNote);
+            });
+            
+            sortNotesAndRefresh();
+            alert(`${copiedNotes.length} 個のノーツを ${pasteBeat} 拍目からペーストしました。`);
+        }
+
         function refreshNoteList() {
-            // ... (リスト表示ロジック) ...
             const listElement = document.getElementById('noteList');
             listElement.innerHTML = '';
             
@@ -313,6 +462,7 @@
             currentNotes.forEach((note, index) => {
                 const item = document.createElement('div');
                 item.className = 'note-item';
+                // 編集モードのトリガー
                 item.onclick = () => editNote(index); 
 
                 let durationText = '';
@@ -339,15 +489,86 @@
                 listElement.appendChild(item);
             });
         }
+
+        function deleteNote(index) {
+            if (index === editingNoteIndex) {
+                cancelEdit();
+            }
+            currentNotes.splice(index, 1);
+            if (editingNoteIndex > index) {
+                editingNoteIndex--;
+            }
+            refreshNoteList();
+        }
+
+        // --- 9. 生成とダウンロード ---
+        function generateAndDisplayScore() {
+            const title = document.getElementById('title').value;
+            const bpm = parseFloat(document.getElementById('bpm').value);
+            
+            if (isNaN(bpm) || bpm <= 0) {
+                alert('BPMには正の数値を入力してください。');
+                return;
+            }
+            
+            currentNotes.sort((a, b) => a.beat - b.beat);
+            refreshNoteList(); 
+            
+            const secPerBeat = 60.0 / bpm;
+
+            const finalNotes = currentNotes.map(note => {
+                const time = round(note.beat * secPerBeat, 4);
+                let noteObj = {
+                    "time": time,
+                    "lane": note.lane,
+                    "type": note.type
+                };
+                
+                if (note.type === NOTE_TYPE_LONG) {
+                    const duration_sec = round(note.duration_beats * secPerBeat, 4);
+                    noteObj["duration"] = duration_sec;
+                }
+                return noteObj;
+            });
+
+            const scoreData = {
+                "song_title": title,
+                "bpm": bpm,
+                "notes": finalNotes
+            };
+            
+            const jsonString = JSON.stringify(scoreData, null, 4);
+            document.getElementById('jsonOutput').value = jsonString;
+        }
+
+        function downloadScore() {
+            const jsonString = document.getElementById('jsonOutput').value;
+            if (!jsonString || jsonString.includes("ボタンを押して")) {
+                alert("先にスコアを生成してください。");
+                return;
+            }
+
+            const title = document.getElementById('title').value.replace(/[^a-z0-9]/gi, '_');
+            const filename = `${title}_score.json`;
+            
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            alert(`✅ ファイル '${filename}' をダウンロードしました。`);
+        }
         
-        function generateAndDisplayScore() { /* ... */ }
-        function downloadScore() { /* ... */ }
-        
-        // --- 8. 初期化処理 ---
+        // --- 10. 初期化処理 ---
         document.addEventListener('DOMContentLoaded', () => {
-            // 外部ライブラリの読み込み確認 (lz-string)
             if (typeof LZString === 'undefined') {
-                alert("エラー: LZ-Stringライブラリの読み込みに失敗しました。インターネット接続を確認してください。");
+                console.error("LZ-Stringライブラリが見つかりません。");
             }
 
             loadFromHash(); // ページロード時にハッシュからデータを読み込む
