@@ -483,15 +483,13 @@
         function drawPatternGrid() {
             const grid = document.getElementById('patternEditorGrid');
             
-            // 既存のヘッダーとタイム表示以外をクリア
-            const existingRows = grid.querySelectorAll('.pattern-row');
-            existingRows.forEach(row => row.remove());
+            // 🐞バグ修正: 以前の動的要素を全て削除する（HTMLで定義されている最初の2つの静的要素を除く）
+            while (grid.children.length > 2) {
+                grid.removeChild(grid.lastElementChild);
+            }
+            // ------------------------------------------------------------------
 
             for (let lane = 1; lane <= 6; lane++) {
-                const rowDiv = document.createElement('div');
-                rowDiv.className = 'pattern-row';
-                rowDiv.style.gridColumn = '1 / 18';
-
                 // レーンラベル
                 const label = document.createElement('div');
                 label.className = 'pattern-label';
