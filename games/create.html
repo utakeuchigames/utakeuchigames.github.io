@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>音符データエディター (パターンエディター搭載)</title>
+    <title>音符データエディター (パターンエディター搭載・双方向編集対応)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.4.4/lz-string.min.js"></script>
     <style>
+        /* CSSは前回の完全版とほぼ同じですが、再利用性と完全性のためにすべて含めます */
         body { font-family: 'Arial', sans-serif; padding: 20px; background-color: #1e1e1e; color: #d4d4d4; }
         h1, h2 { color: #00FFFF; border-bottom: 1px solid #00FFFF; padding-bottom: 5px; margin-top: 20px; }
         .controls, .editor-area { background: #2d2d2d; padding: 15px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); }
@@ -31,14 +32,15 @@
         .copy-btn { background: #5bc0de; color: white; }
         #hashUrlOutput { background: #3c3c3c; padding: 10px; border-radius: 4px; border: 1px solid #555; overflow-x: auto; font-family: monospace; font-size: 12px; margin-top: 10px; }
         
-        /* === パターンエディター専用CSS === */
+        /* === パターンエディター専用CSS (動的サイズ対応) === */
         .pattern-editor { 
             display: grid; 
-            grid-template-columns: 30px repeat(16, 1fr); 
+            grid-template-columns: 30px repeat(var(--pattern-steps, 16), 1fr); /* 修正 */
             gap: 1px; 
             background: #444; 
             border: 1px solid #555; 
             margin-top: 10px;
+            overflow-x: auto; /* スクロール可能に */
         }
         .pattern-header, .pattern-cell { 
             background: #2d2d2d; 
@@ -51,6 +53,7 @@
             cursor: pointer; 
             background: #1e1e1e;
             transition: background-color 0.1s;
+            position: relative;
         }
         .pattern-cell:hover { 
             background: #3c3c3c; 
@@ -59,16 +62,25 @@
             background: #3c3c3c; 
             font-weight: bold; 
             color: #ddd; 
+            position: sticky; /* スクロールしても残るように */
+            left: 0;
+            z-index: 2;
         }
         .pattern-time { 
             background: #3c3c3c; 
             color: #ddd; 
             font-size: 10px;
             padding: 2px 0;
-            grid-column: 2 / 18;
+            grid-column: 2 / calc(var(--pattern-steps, 16) + 2); /* 修正 */
             display: grid;
-            grid-template-columns: repeat(16, 1fr);
+            grid-template-columns: repeat(var(--pattern-steps, 16), 1fr);
             border-bottom: 1px solid #555;
+            position: sticky; /* スクロールしても残るように */
+            top: 0;
+            z-index: 1;
+        }
+        .pattern-time span {
+            text-align: center;
         }
         .pattern-time span:nth-child(4n + 1) { 
             background: #555; /* 拍の頭を強調 */
@@ -78,8 +90,14 @@
             background-color: #00FFFF !important; 
             border: 1px solid #fff;
         }
-        .active-note.long-note { 
-            background-color: #ffaa00 !important; 
+        .active-long-start { /* ロングノートの開始セル */
+            background-color: #FFD700 !important; /* GOLD */
+            border: 1px solid #fff;
+        }
+        .active-long-continue { /* ロングノートの継続セル */
+            background-color: #FFD700 !important;
+            opacity: 0.6;
+            border: none;
         }
         .pattern-row { 
             display: contents; 
@@ -89,6 +107,9 @@
             font-weight: bold; 
             color: #00FFFF;
             padding: 5px 0;
+            position: sticky; 
+            left: 0;
+            z-index: 1;
         }
         /* Tap専用とLong専用のレーンカラー分け */
         .pattern-row:nth-child(even) .pattern-label { color: #FFD700; }
@@ -98,7 +119,7 @@
 </head>
 <body>
 
-    <h1>🎹 音符データエディター (パターンエディター搭載)</h1>
+    <h1>🎹 音符データエディター (パターンエディター搭載・双方向編集対応)</h1>
 
     <div class="controls">
         <h2>ファイル・ハッシュデータの操作</h2>
@@ -129,7 +150,7 @@
             </div>
             <div>
                 <label for="beatsPerMeasure">拍子 (1小節あたりの拍数)</label>
-                <input type="number" id="beatsPerMeasure" value="4" min="1" step="1">
+                <input type="number" id="beatsPerMeasure" value="4" min="1" step="1" onchange="updateBeatFromMeasure();">
             </div>
         </div>
     </div>
@@ -181,25 +202,32 @@
             </div>
         </div>
         
-        <h2 style="margin-top: 30px;">🎹 ノーツパターンエディター (4拍/16分音符)</h2>
+        <h2 style="margin-top: 30px;">🎹 ノーツパターンエディター (範囲編集対応)</h2>
         <div class="input-group">
-            <div style="width: 150px;">
-                <label for="patternStartBeat">開始拍数</label>
-                <input type="number" id="patternStartBeat" value="4.0" step="0.25">
+            <div>
+                <label for="startMeasure">開始小節 (M)</label>
+                <input type="number" id="startMeasure" value="1" min="1" step="1">
             </div>
-            <button onclick="clearPattern()">パターンをリセット</button>
-            <button onclick="applyPatternToNotes()" style="background-color: #00DDDD;">パターンをノーツリストに追加</button>
+            <div>
+                <label for="endMeasure">終了小節 (M)</label>
+                <input type="number" id="endMeasure" value="4" min="1" step="1">
+            </div>
+            <button onclick="loadNotesToPattern()" style="background-color: #3cb371;">範囲をロードして編集</button>
+            <button onclick="clearPattern()">グリッドをリセット</button>
+        </div>
+        <div class="input-group" style="align-items: center;">
+            <div style="width: 150px;">
+                <label for="patternStartBeat">開始拍数 (表示)</label>
+                <input type="number" id="patternStartBeat" value="1.0" step="0.25" disabled>
+            </div>
+            <button onclick="applyPatternToNotes()" style="background-color: #00DDDD;">パターンをノーツリストに反映</button>
         </div>
         
         <div class="pattern-editor" id="patternEditorGrid">
             <div class="pattern-header">レーン</div>
-            <div class="pattern-time">
-                <span>1</span><span></span><span></span><span></span>
-                <span>2</span><span></span><span></span><span></span>
-                <span>3</span><span></span><span></span><span></span>
-                <span>4</span><span></span><span></span><span></span>
-            </div>
-            </div>
+            <div class="pattern-time" id="patternTimeHeader">
+                </div>
+        </div>
         </div>
     
     <div class="editor-area">
@@ -228,14 +256,18 @@
         // --- 1. 定数とグローバル変数 ---
         const NOTE_TYPE_TAP = 0;
         const NOTE_TYPE_LONG = 1;
-        const PATTERN_STEPS = 16; // 4拍 × 16分音符
         const PATTERN_STEP_BEAT = 0.25; // 16分音符は0.25拍
         
         let currentNotes = []; 
         let copiedNotes = [];  
         let editingNoteIndex = -1;
-        // 新規：パターンエディター用の内部状態 (lane 1-6, step 0-15)
-        let currentPattern = Array(6).fill(0).map(() => Array(PATTERN_STEPS).fill(false));
+        
+        // パターンエディターの状態を保持する新しい構造
+        // currentPattern[laneIndex][stepIndex] = { type: 0/1, duration: beats } or null
+        let currentPattern = []; 
+        let patternTotalSteps = 0;
+        let patternStartBeat = 1.0;
+        let patternEndBeat = 0; // 自動計算される
 
         // --- 2. ユーティリティ関数 ---
         function round(value, decimals) {
@@ -319,6 +351,7 @@
                     
                     document.getElementById('title').value = loadedData.song_title || 'File Loaded Score';
                     document.getElementById('bpm').value = loadedData.bpm || 160.0;
+                    document.getElementById('beatsPerMeasure').value = loadedData.beatsPerMeasure || 4;
                     
                     const loadedBPM = parseFloat(loadedData.bpm) || 160.0;
                     const secPerBeat = 60.0 / loadedBPM;
@@ -358,7 +391,6 @@
             const absoluteBeat = (measure - 1) * beatsPerMeasure + beatInMeasure;
             
             document.getElementById('inputBeat').value = round(absoluteBeat, 2);
-            document.getElementById('patternStartBeat').value = round(absoluteBeat, 2); // パターン開始拍も同期
         }
 
         function updateMeasureFromBeat() {
@@ -370,7 +402,6 @@
             
             document.getElementById('inputMeasure').value = measure;
             document.getElementById('inputBeatInMeasure').value = round(beatInMeasure, 2);
-            document.getElementById('patternStartBeat').value = round(absoluteBeat, 2); // パターン開始拍も同期
         }
 
         function advanceBeat(delta) {
@@ -379,7 +410,7 @@
             updateMeasureFromBeat();
         }
 
-        // --- 6. ノーツ操作 (追加・更新を統合) ---
+        // --- 6. ノーツ操作 (フォーム入力 - 変更なし) ---
 
         function toggleDuration() {
             const type = document.getElementById('inputType').value;
@@ -475,20 +506,115 @@
             updateMeasureFromBeat();
         }
 
-        // --- 8. パターンエディター機能 (新規) ---
+        // --- 8. パターンエディター機能 (大幅改修) ---
 
         /**
-         * パターンエディターのグリッドをHTMLで描画する
+         * 既存のノーツを読み込み、パターンエディターの内部状態に反映する
+         */
+        function loadNotesToPattern() {
+            const beatsPerMeasure = parseInt(document.getElementById('beatsPerMeasure').value) || 4;
+            const startMeasure = parseInt(document.getElementById('startMeasure').value) || 1;
+            const endMeasure = parseInt(document.getElementById('endMeasure').value) || 4;
+
+            if (startMeasure <= 0 || endMeasure < startMeasure) {
+                alert('小節の範囲を正しく入力してください。');
+                return;
+            }
+
+            patternStartBeat = (startMeasure - 1) * beatsPerMeasure + 1.0;
+            patternEndBeat = endMeasure * beatsPerMeasure + 1.0;
+            
+            const totalBeats = patternEndBeat - patternStartBeat;
+            patternTotalSteps = round(totalBeats / PATTERN_STEP_BEAT, 0);
+
+            if (patternTotalSteps <= 0) {
+                 alert('編集範囲が短すぎるか、計算エラーが発生しました。');
+                 return;
+            }
+
+            // グリッドをクリアし、新しいサイズで初期化
+            currentPattern = Array(6).fill(0).map(() => Array(patternTotalSteps).fill(null));
+
+            document.getElementById('patternStartBeat').value = patternStartBeat;
+            
+            // 既存ノーツの反映
+            let notesLoaded = 0;
+            currentNotes.forEach(note => {
+                // 範囲の判定: [patternStartBeat, patternEndBeat)
+                if (note.beat >= patternStartBeat && note.beat < patternEndBeat) {
+                    const beatOffset = note.beat - patternStartBeat;
+                    const step = round(beatOffset / PATTERN_STEP_BEAT, 0);
+
+                    if (step >= 0 && step < patternTotalSteps) {
+                        if (note.type === NOTE_TYPE_TAP) {
+                            currentPattern[note.lane - 1][step] = { type: NOTE_TYPE_TAP };
+                            notesLoaded++;
+                        } else if (note.type === NOTE_TYPE_LONG && note.duration_beats) {
+                            // ロングノーツの継続セルも反映
+                            const durationSteps = round(note.duration_beats / PATTERN_STEP_BEAT, 0);
+                            currentPattern[note.lane - 1][step] = { type: NOTE_TYPE_LONG, duration: note.duration_beats };
+                            notesLoaded++;
+                            
+                            for (let i = 1; i < durationSteps; i++) {
+                                const continueStep = step + i;
+                                // 継続ノーツはグリッドの範囲内に収める
+                                if (continueStep < patternTotalSteps) {
+                                    // 視覚的な継続ノーツとしてマーク (type 2: Long Continuation)
+                                    // 既にノーツが存在する場合（Tapや別のLong Start）は上書きしない
+                                    if(currentPattern[note.lane - 1][continueStep] === null) {
+                                        currentPattern[note.lane - 1][continueStep] = { type: 2 };
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            drawPatternGrid();
+            alert(`M${startMeasure}〜M${endMeasure}の範囲 (${patternTotalSteps}ステップ) をロードし、${notesLoaded}個のノーツを反映しました。`);
+        }
+
+
+        /**
+         * パターンエディターのグリッドをHTMLで描画する (動的サイズ対応)
          */
         function drawPatternGrid() {
             const grid = document.getElementById('patternEditorGrid');
+            const timeHeader = document.getElementById('patternTimeHeader');
+            const beatsPerMeasure = parseInt(document.getElementById('beatsPerMeasure').value) || 4;
             
+            // CSS変数に総ステップ数を設定
+            grid.style.setProperty('--pattern-steps', patternTotalSteps);
+
             // 🐞バグ修正: 以前の動的要素を全て削除する（HTMLで定義されている最初の2つの静的要素を除く）
             while (grid.children.length > 2) {
                 grid.removeChild(grid.lastElementChild);
             }
-            // ------------------------------------------------------------------
 
+            // タイムヘッダーを更新
+            timeHeader.innerHTML = '';
+            // ステップ数が0の場合は、ヘッダーもリセット
+            if (patternTotalSteps > 0) {
+                for (let step = 0; step < patternTotalSteps; step++) {
+                    const beat = round(patternStartBeat + step * PATTERN_STEP_BEAT, 2);
+                    const beatInMeasure = round(((beat - 1) % beatsPerMeasure) + 1, 2);
+                    
+                    const span = document.createElement('span');
+                    // 1拍の頭 (1.0, 2.0, 3.0, 4.0...) を表示
+                    if (beatInMeasure === 1.0) {
+                        // 1.0拍目は小節の開始を示す
+                        span.textContent = Math.floor(beat); 
+                    } else if (step % 4 === 0) {
+                        // 1拍目以降の拍の頭
+                        span.textContent = beatInMeasure;
+                    }
+                    
+                    timeHeader.appendChild(span);
+                }
+            }
+            
+            // レーンとセルの描画
             for (let lane = 1; lane <= 6; lane++) {
                 // レーンラベル
                 const label = document.createElement('div');
@@ -496,8 +622,8 @@
                 label.textContent = `L${lane}`;
                 grid.appendChild(label);
                 
-                // 16ステップのセル
-                for (let step = 0; step < PATTERN_STEPS; step++) {
+                // セルの描画
+                for (let step = 0; step < patternTotalSteps; step++) {
                     const cell = document.createElement('div');
                     cell.className = 'pattern-cell';
                     cell.dataset.lane = lane;
@@ -508,13 +634,20 @@
                         cell.style.borderLeft = '1px solid #00FFFF';
                     }
 
+                    // 内部状態に合わせて色付け
+                    const note = currentPattern[lane - 1][step];
+                    if (note) {
+                        if (note.type === NOTE_TYPE_TAP) {
+                            cell.classList.add('active-note'); // Tap
+                        } else if (note.type === NOTE_TYPE_LONG) {
+                            cell.classList.add('active-long-start'); // Long Start
+                        } else if (note.type === 2) {
+                            cell.classList.add('active-long-continue'); // Long Continue (視覚用)
+                        }
+                    }
+
                     // クリックでノーツON/OFFを切り替える
                     cell.onclick = () => toggleNoteInPattern(lane, step, cell);
-
-                    // 内部状態に合わせて色付け
-                    if (currentPattern[lane - 1][step]) {
-                        cell.classList.add('active-note');
-                    }
                     
                     grid.appendChild(cell);
                 }
@@ -522,18 +655,73 @@
         }
         
         /**
-         * グリッドをクリックしてノーツの有無を切り替える
+         * グリッドをクリックしてノーツの有無を切り替える (Longノーツ対応)
          */
         function toggleNoteInPattern(lane, step, cell) {
-            const patternIndex = lane - 1;
-            const state = currentPattern[patternIndex][step];
-            currentPattern[patternIndex][step] = !state;
+            const laneIndex = lane - 1;
+            const currentNote = currentPattern[laneIndex][step];
+            
+            // 1. ノーツをクリア (継続ノーツも含む)
+            const clearNoteState = () => {
+                if (currentNote && currentNote.type === NOTE_TYPE_LONG) {
+                    // Longノーツを削除する場合、継続ノーツも削除する
+                    const durationSteps = round(currentNote.duration / PATTERN_STEP_BEAT, 0);
+                    for (let i = 0; i < durationSteps; i++) {
+                        const targetStep = step + i;
+                        if (targetStep < patternTotalSteps) {
+                             // 内部状態をクリア
+                            currentPattern[laneIndex][targetStep] = null;
 
-            // スタイルを切り替え
-            if (!state) {
+                            // DOMをクリア
+                            const targetCell = document.querySelector(`.pattern-cell[data-lane="${lane}"][data-step="${targetStep}"]`);
+                            if (targetCell) {
+                                targetCell.classList.remove('active-long-start', 'active-long-continue', 'active-note');
+                            }
+                        }
+                    }
+                } else {
+                    // Tap または Long Continuation の場合、そのセルのみクリア
+                    cell.classList.remove('active-long-start', 'active-long-continue', 'active-note');
+                    currentPattern[laneIndex][step] = null;
+                }
+            };
+            
+            // 2. 状態の切り替えロジック
+            if (!currentNote) {
+                // null (空) -> Tap
+                currentPattern[laneIndex][step] = { type: NOTE_TYPE_TAP };
                 cell.classList.add('active-note');
-            } else {
-                cell.classList.remove('active-note');
+            } else if (currentNote.type === NOTE_TYPE_TAP || currentNote.type === 2) {
+                // Tap または Long Continuation -> Long Start (Duration: 1 beat固定)
+                
+                // まず現在のノーツ状態をクリア
+                clearNoteState();
+                
+                const durationBeats = 1.0; // パターンエディター上でのデフォルト長さ
+                const durationSteps = 4;
+                
+                // Long Start を設定
+                currentPattern[laneIndex][step] = { type: NOTE_TYPE_LONG, duration: durationBeats };
+                cell.classList.add('active-long-start');
+
+                // Long Continuation を設定
+                for (let i = 1; i < durationSteps; i++) {
+                    const continueStep = step + i;
+                    if (continueStep < patternTotalSteps) {
+                        // 次のセルが既に別のノーツ（TapやLong Start）でない場合のみ設定する
+                        if (currentPattern[laneIndex][continueStep] === null) {
+                            currentPattern[laneIndex][continueStep] = { type: 2 };
+                        }
+                        
+                        const targetCell = document.querySelector(`.pattern-cell[data-lane="${lane}"][data-step="${continueStep}"]`);
+                        if (targetCell) {
+                            targetCell.classList.add('active-long-continue');
+                        }
+                    }
+                }
+            } else if (currentNote.type === NOTE_TYPE_LONG) {
+                // Long Start -> null (削除)
+                clearNoteState();
             }
         }
         
@@ -541,43 +729,51 @@
          * 現在のパターンをノーツリストに追加する
          */
         function applyPatternToNotes() {
-            const startBeat = parseFloat(document.getElementById('patternStartBeat').value);
-            if (isNaN(startBeat)) {
-                alert('開始拍数に有効な数値を入力してください。');
+            if (patternTotalSteps === 0) {
+                alert('先に「範囲をロードして編集」ボタンを押して、編集範囲を設定してください。');
                 return;
             }
-            
-            let notesAdded = 0;
-            let lastBeat = startBeat;
 
+            // 1. 編集範囲内の既存ノーツをリストから削除する
+            const notesToRemove = currentNotes.filter(note => 
+                note.beat >= patternStartBeat && note.beat < patternEndBeat
+            );
+            
+            currentNotes = currentNotes.filter(note => 
+                note.beat < patternStartBeat || note.beat >= patternEndBeat
+            );
+
+            // 2. パターンエディターの内容を新しいノーツとして追加する
+            let notesAdded = 0;
             for (let lane = 1; lane <= 6; lane++) {
-                for (let step = 0; step < PATTERN_STEPS; step++) {
-                    if (currentPattern[lane - 1][step]) {
+                for (let step = 0; step < patternTotalSteps; step++) {
+                    const note = currentPattern[lane - 1][step];
+                    
+                    if (note && note.type !== 2) { // Long Continuation は無視
                         const beatOffset = step * PATTERN_STEP_BEAT;
-                        const newBeat = round(startBeat + beatOffset, 2);
+                        const newBeat = round(patternStartBeat + beatOffset, 2);
                         
-                        // パターンエディターはTapノーツ専用とする（シンプル化のため）
-                        currentNotes.push({ 
+                        const newNote = { 
                             beat: newBeat, 
                             lane: lane, 
-                            type: NOTE_TYPE_TAP 
-                        });
+                            type: note.type
+                        };
+
+                        if (note.type === NOTE_TYPE_LONG) {
+                            newNote.duration_beats = note.duration; // Longノーツの長さを反映 (デフォルトは1.0拍)
+                        }
+
+                        currentNotes.push(newNote);
                         notesAdded++;
-                        lastBeat = Math.max(lastBeat, newBeat);
                     }
                 }
             }
 
-            if (notesAdded > 0) {
+            if (notesAdded > 0 || notesToRemove.length > 0) {
                 sortNotesAndRefresh();
-                clearPattern();
-                // 次のパターンの開始拍を自動で設定
-                document.getElementById('patternStartBeat').value = round(lastBeat + PATTERN_STEP_BEAT, 2);
-                document.getElementById('inputBeat').value = document.getElementById('patternStartBeat').value;
-                updateMeasureFromBeat(); // フォームの拍数も更新
-                alert(`${notesAdded} 個のノーツをリストに追加しました！`);
+                alert(`リストを更新しました。${notesToRemove.length}個の古いノーツを削除し、${notesAdded}個の新しいノーツを追加しました。`);
             } else {
-                alert('追加するノーツがパターンにありません。');
+                alert('ノーツの変更はありませんでした。');
             }
         }
 
@@ -585,8 +781,10 @@
          * パターンエディターの状態をリセットする
          */
         function clearPattern() {
-            currentPattern = Array(6).fill(0).map(() => Array(PATTERN_STEPS).fill(false));
-            drawPatternGrid();
+            patternTotalSteps = 0; // サイズをリセット
+            currentPattern = [];
+            document.getElementById('patternStartBeat').value = '1.0';
+            drawPatternGrid(); // 空のグリッドを再描画
         }
 
         // --- 9. リスト操作と表示 ---
@@ -772,7 +970,7 @@
             setFormToAddMode(); 
             refreshNoteList();
             
-            drawPatternGrid();
+            clearPattern(); // 最初に空のグリッドを描画
         });
     </script>
 
