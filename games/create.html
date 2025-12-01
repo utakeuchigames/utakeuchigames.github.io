@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>音符データエディター (最終調整版)</title>
+    <title>音符データエディター (パターンエディター搭載)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.4.4/lz-string.min.js"></script>
     <style>
         body { font-family: 'Arial', sans-serif; padding: 20px; background-color: #1e1e1e; color: #d4d4d4; }
@@ -30,11 +30,75 @@
         .delete-btn { background: #ff4d4d; color: white; }
         .copy-btn { background: #5bc0de; color: white; }
         #hashUrlOutput { background: #3c3c3c; padding: 10px; border-radius: 4px; border: 1px solid #555; overflow-x: auto; font-family: monospace; font-size: 12px; margin-top: 10px; }
+        
+        /* === パターンエディター専用CSS === */
+        .pattern-editor { 
+            display: grid; 
+            grid-template-columns: 30px repeat(16, 1fr); 
+            gap: 1px; 
+            background: #444; 
+            border: 1px solid #555; 
+            margin-top: 10px;
+        }
+        .pattern-header, .pattern-cell { 
+            background: #2d2d2d; 
+            text-align: center; 
+            padding: 5px 0; 
+            font-size: 12px;
+            user-select: none;
+        }
+        .pattern-cell { 
+            cursor: pointer; 
+            background: #1e1e1e;
+            transition: background-color 0.1s;
+        }
+        .pattern-cell:hover { 
+            background: #3c3c3c; 
+        }
+        .pattern-header { 
+            background: #3c3c3c; 
+            font-weight: bold; 
+            color: #ddd; 
+        }
+        .pattern-time { 
+            background: #3c3c3c; 
+            color: #ddd; 
+            font-size: 10px;
+            padding: 2px 0;
+            grid-column: 2 / 18;
+            display: grid;
+            grid-template-columns: repeat(16, 1fr);
+            border-bottom: 1px solid #555;
+        }
+        .pattern-time span:nth-child(4n + 1) { 
+            background: #555; /* 拍の頭を強調 */
+            color: #00FFFF;
+        }
+        .active-note { 
+            background-color: #00FFFF !important; 
+            border: 1px solid #fff;
+        }
+        .active-note.long-note { 
+            background-color: #ffaa00 !important; 
+        }
+        .pattern-row { 
+            display: contents; 
+        }
+        .pattern-label { 
+            background: #3c3c3c; 
+            font-weight: bold; 
+            color: #00FFFF;
+            padding: 5px 0;
+        }
+        /* Tap専用とLong専用のレーンカラー分け */
+        .pattern-row:nth-child(even) .pattern-label { color: #FFD700; }
+        .pattern-row:nth-child(even) .pattern-cell { background: #151515; }
+        
     </style>
 </head>
 <body>
 
-    <h1>🎹 音符データエディター (保存・読み込み対応)</h1>
+    <h1>🎹 音符データエディター (パターンエディター搭載)</h1>
 
     <div class="controls">
         <h2>ファイル・ハッシュデータの操作</h2>
@@ -71,7 +135,7 @@
     </div>
 
     <div class="editor-area">
-        <h2>ノーツ追加・編集</h2>
+        <h2>ノーツ追加・編集 (フォーム入力)</h2>
         
         <div class="input-group">
             <div>
@@ -112,11 +176,31 @@
                 <input type="number" id="inputDurationBeat" value="2.0" step="0.25" disabled>
             </div>
             <div style="grid-column: 4 / 6;">
-                <button id="addUpdateButton" onclick="handleAddOrUpdateNote()">ノーツを追加</button>
+                <button id="addUpdateButton" onclick="handleAddOrUpdateNote()">フォームから追加/更新</button>
                 <button onclick="cancelEdit()" style="background-color: #666; color: white;" id="cancelEditBtn" style="display:none;">キャンセル</button>
             </div>
         </div>
-    </div>
+        
+        <h2 style="margin-top: 30px;">🎹 ノーツパターンエディター (4拍/16分音符)</h2>
+        <div class="input-group">
+            <div style="width: 150px;">
+                <label for="patternStartBeat">開始拍数</label>
+                <input type="number" id="patternStartBeat" value="4.0" step="0.25">
+            </div>
+            <button onclick="clearPattern()">パターンをリセット</button>
+            <button onclick="applyPatternToNotes()" style="background-color: #00DDDD;">パターンをノーツリストに追加</button>
+        </div>
+        
+        <div class="pattern-editor" id="patternEditorGrid">
+            <div class="pattern-header">レーン</div>
+            <div class="pattern-time">
+                <span>1</span><span></span><span></span><span></span>
+                <span>2</span><span></span><span></span><span></span>
+                <span>3</span><span></span><span></span><span></span>
+                <span>4</span><span></span><span></span><span></span>
+            </div>
+            </div>
+        </div>
     
     <div class="editor-area">
         <h2>ノーツリストと編集</h2>
@@ -144,19 +228,21 @@
         // --- 1. 定数とグローバル変数 ---
         const NOTE_TYPE_TAP = 0;
         const NOTE_TYPE_LONG = 1;
+        const PATTERN_STEPS = 16; // 4拍 × 16分音符
+        const PATTERN_STEP_BEAT = 0.25; // 16分音符は0.25拍
         
         let currentNotes = []; 
         let copiedNotes = [];  
-        let editingNoteIndex = -1; // -1: 追加モード, 0以上: 編集モード
+        let editingNoteIndex = -1;
+        // 新規：パターンエディター用の内部状態 (lane 1-6, step 0-15)
+        let currentPattern = Array(6).fill(0).map(() => Array(PATTERN_STEPS).fill(false));
 
         // --- 2. ユーティリティ関数 ---
-
         function round(value, decimals) {
             return Number(Math.round(value + 'e' + decimals) + 'e-' + decimals);
         }
 
         // --- 3. データ永続化 (ハッシュ) ---
-
         function saveToHash() {
             const dataToSave = {
                 title: document.getElementById('title').value,
@@ -192,18 +278,15 @@
                 const loadedData = JSON.parse(decompressed);
                 
                 if (loadedData.notes && Array.isArray(loadedData.notes)) {
-                    // 基本情報をフォームに適用
                     document.getElementById('title').value = loadedData.title || 'Loaded Score';
                     document.getElementById('bpm').value = loadedData.bpm || 160.0;
                     document.getElementById('beatsPerMeasure').value = loadedData.beatsPerMeasure || 4;
                     
-                    // ノーツリストを更新
                     currentNotes = loadedData.notes;
                     sortNotesAndRefresh();
                     
                     document.getElementById('hashUrlOutput').textContent = `保存されたURL: (データから復元されました)`;
                     
-                    // フォーム表示の更新
                     updateBeatFromMeasure();
                     toggleDuration();
                     setFormToAddMode();
@@ -212,7 +295,6 @@
                 }
             } catch(e) {
                 console.error("ハッシュからの読み込みエラー:", e);
-                // alert("URLハッシュからのデータ復元に失敗しました。"); // 失敗時に毎回出すと煩わしいのでコメントアウト
             }
         }
 
@@ -235,30 +317,26 @@
                          throw new Error("JSON形式が正しくありません。'notes'配列が見つかりません。");
                     }
                     
-                    // 基本情報のセット
                     document.getElementById('title').value = loadedData.song_title || 'File Loaded Score';
                     document.getElementById('bpm').value = loadedData.bpm || 160.0;
                     
-                    // ノーツをBPMフリーの形式 (拍数ベース) に変換し、currentNotesに追加
                     const loadedBPM = parseFloat(loadedData.bpm) || 160.0;
                     const secPerBeat = 60.0 / loadedBPM;
 
                     const beatNotes = loadedData.notes.map(note => {
-                        const beat = round(note.time / secPerBeat, 2); // 秒を拍に変換
+                        const beat = round(note.time / secPerBeat, 2); 
                         let newNote = { beat: beat, lane: note.lane, type: note.type };
                         
                         if (note.type === NOTE_TYPE_LONG && note.duration) {
-                            newNote.duration_beats = round(note.duration / secPerBeat, 2); // 秒を拍に変換
+                            newNote.duration_beats = round(note.duration / secPerBeat, 2); 
                         }
                         return newNote;
                     });
                     
-                    // 既存のノーツをクリアして新しいノーツをロード
                     currentNotes = beatNotes; 
                     sortNotesAndRefresh();
                     alert(`✅ ファイル "${file.name}" を正常に読み込みました。`);
                     
-                    // フォームを初期化
                     updateBeatFromMeasure();
                     cancelEdit();
                     fileInput.value = ''; 
@@ -280,6 +358,7 @@
             const absoluteBeat = (measure - 1) * beatsPerMeasure + beatInMeasure;
             
             document.getElementById('inputBeat').value = round(absoluteBeat, 2);
+            document.getElementById('patternStartBeat').value = round(absoluteBeat, 2); // パターン開始拍も同期
         }
 
         function updateMeasureFromBeat() {
@@ -291,6 +370,7 @@
             
             document.getElementById('inputMeasure').value = measure;
             document.getElementById('inputBeatInMeasure').value = round(beatInMeasure, 2);
+            document.getElementById('patternStartBeat').value = round(absoluteBeat, 2); // パターン開始拍も同期
         }
 
         function advanceBeat(delta) {
@@ -358,11 +438,11 @@
             btn.classList.add('edit-mode-btn');
             document.getElementById('cancelEditBtn').style.display = 'inline-block';
         }
-        
+
         function setFormToAddMode() {
             editingNoteIndex = -1;
             const btn = document.getElementById('addUpdateButton');
-            btn.textContent = 'ノーツを追加';
+            btn.textContent = 'フォームから追加/更新';
             btn.classList.remove('edit-mode-btn');
             document.getElementById('cancelEditBtn').style.display = 'none';
         }
@@ -395,7 +475,123 @@
             updateMeasureFromBeat();
         }
 
-        // --- 8. リスト操作と表示 ---
+        // --- 8. パターンエディター機能 (新規) ---
+
+        /**
+         * パターンエディターのグリッドをHTMLで描画する
+         */
+        function drawPatternGrid() {
+            const grid = document.getElementById('patternEditorGrid');
+            
+            // 既存のヘッダーとタイム表示以外をクリア
+            const existingRows = grid.querySelectorAll('.pattern-row');
+            existingRows.forEach(row => row.remove());
+
+            for (let lane = 1; lane <= 6; lane++) {
+                const rowDiv = document.createElement('div');
+                rowDiv.className = 'pattern-row';
+                rowDiv.style.gridColumn = '1 / 18';
+
+                // レーンラベル
+                const label = document.createElement('div');
+                label.className = 'pattern-label';
+                label.textContent = `L${lane}`;
+                grid.appendChild(label);
+                
+                // 16ステップのセル
+                for (let step = 0; step < PATTERN_STEPS; step++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'pattern-cell';
+                    cell.dataset.lane = lane;
+                    cell.dataset.step = step;
+
+                    // 1/4拍の頭を強調
+                    if (step % 4 === 0) {
+                        cell.style.borderLeft = '1px solid #00FFFF';
+                    }
+
+                    // クリックでノーツON/OFFを切り替える
+                    cell.onclick = () => toggleNoteInPattern(lane, step, cell);
+
+                    // 内部状態に合わせて色付け
+                    if (currentPattern[lane - 1][step]) {
+                        cell.classList.add('active-note');
+                    }
+                    
+                    grid.appendChild(cell);
+                }
+            }
+        }
+        
+        /**
+         * グリッドをクリックしてノーツの有無を切り替える
+         */
+        function toggleNoteInPattern(lane, step, cell) {
+            const patternIndex = lane - 1;
+            const state = currentPattern[patternIndex][step];
+            currentPattern[patternIndex][step] = !state;
+
+            // スタイルを切り替え
+            if (!state) {
+                cell.classList.add('active-note');
+            } else {
+                cell.classList.remove('active-note');
+            }
+        }
+        
+        /**
+         * 現在のパターンをノーツリストに追加する
+         */
+        function applyPatternToNotes() {
+            const startBeat = parseFloat(document.getElementById('patternStartBeat').value);
+            if (isNaN(startBeat)) {
+                alert('開始拍数に有効な数値を入力してください。');
+                return;
+            }
+            
+            let notesAdded = 0;
+            let lastBeat = startBeat;
+
+            for (let lane = 1; lane <= 6; lane++) {
+                for (let step = 0; step < PATTERN_STEPS; step++) {
+                    if (currentPattern[lane - 1][step]) {
+                        const beatOffset = step * PATTERN_STEP_BEAT;
+                        const newBeat = round(startBeat + beatOffset, 2);
+                        
+                        // パターンエディターはTapノーツ専用とする（シンプル化のため）
+                        currentNotes.push({ 
+                            beat: newBeat, 
+                            lane: lane, 
+                            type: NOTE_TYPE_TAP 
+                        });
+                        notesAdded++;
+                        lastBeat = Math.max(lastBeat, newBeat);
+                    }
+                }
+            }
+
+            if (notesAdded > 0) {
+                sortNotesAndRefresh();
+                clearPattern();
+                // 次のパターンの開始拍を自動で設定
+                document.getElementById('patternStartBeat').value = round(lastBeat + PATTERN_STEP_BEAT, 2);
+                document.getElementById('inputBeat').value = document.getElementById('patternStartBeat').value;
+                updateMeasureFromBeat(); // フォームの拍数も更新
+                alert(`${notesAdded} 個のノーツをリストに追加しました！`);
+            } else {
+                alert('追加するノーツがパターンにありません。');
+            }
+        }
+
+        /**
+         * パターンエディターの状態をリセットする
+         */
+        function clearPattern() {
+            currentPattern = Array(6).fill(0).map(() => Array(PATTERN_STEPS).fill(false));
+            drawPatternGrid();
+        }
+
+        // --- 9. リスト操作と表示 ---
 
         function clearNotes() {
             if (confirm('全てのノーツを削除しますか？')) {
@@ -462,7 +658,6 @@
             currentNotes.forEach((note, index) => {
                 const item = document.createElement('div');
                 item.className = 'note-item';
-                // 編集モードのトリガー
                 item.onclick = () => editNote(index); 
 
                 let durationText = '';
@@ -501,7 +696,7 @@
             refreshNoteList();
         }
 
-        // --- 9. 生成とダウンロード ---
+        // --- 10. 生成とダウンロード ---
         function generateAndDisplayScore() {
             const title = document.getElementById('title').value;
             const bpm = parseFloat(document.getElementById('bpm').value);
@@ -549,7 +744,7 @@
             }
 
             const title = document.getElementById('title').value.replace(/[^a-z0-9]/gi, '_');
-            const filename = `score.json`;
+            const filename = `${title}_score.json`;
             
             const blob = new Blob([jsonString], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
@@ -565,19 +760,21 @@
             alert(`✅ ファイル '${filename}' をダウンロードしました。`);
         }
         
-        // --- 10. 初期化処理 ---
+        // --- 11. 初期化処理 ---
         document.addEventListener('DOMContentLoaded', () => {
             if (typeof LZString === 'undefined') {
                 console.error("LZ-Stringライブラリが見つかりません。");
             }
 
-            loadFromHash(); // ページロード時にハッシュからデータを読み込む
+            loadFromHash(); 
 
             // 初期化
             toggleDuration();
             updateBeatFromMeasure();
             setFormToAddMode(); 
             refreshNoteList();
+            
+            drawPatternGrid();
         });
     </script>
 
