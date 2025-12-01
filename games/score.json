@@ -34,6 +34,39 @@
             "time": 3.4286,
             "lane": 6,
             "type": 0
+        },
+        {
+            "time": 3.7143,
+            "lane": 2,
+            "type": 1,
+            "duration": 1.7143
+        },
+        {
+            "time": 3.7143,
+            "lane": 4,
+            "type": 1,
+            "duration": 1.7143
+        },
+        {
+            "time": 3.7143,
+            "lane": 5,
+            "type": 1,
+            "duration": 1.7143
+        },
+        {
+            "time": 5.7143,
+            "lane": 2,
+            "type": 0
+        },
+        {
+            "time": 5.7143,
+            "lane": 4,
+            "type": 0
+        },
+        {
+            "time": 5.7143,
+            "lane": 5,
+            "type": 0
         }
     ]
 }
