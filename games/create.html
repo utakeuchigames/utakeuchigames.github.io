@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>音符データエディター (パターンエディター搭載・双方向編集対応)</title>
+    <title>音符データエディター (Notemaster v1.0)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.4.4/lz-string.min.js"></script>
     <style>
-        /* CSSは前回の完全版とほぼ同じですが、再利用性と完全性のためにすべて含めます */
+        /* CSSは省略せずすべて含めます */
         body { font-family: 'Arial', sans-serif; padding: 20px; background-color: #1e1e1e; color: #d4d4d4; }
         h1, h2 { color: #00FFFF; border-bottom: 1px solid #00FFFF; padding-bottom: 5px; margin-top: 20px; }
         .controls, .editor-area { background: #2d2d2d; padding: 15px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); }
@@ -119,7 +119,7 @@
 </head>
 <body>
 
-    <h1>🎹 音符データエディター (パターンエディター搭載・双方向編集対応)</h1>
+    <h1>🎹 音符データエディター (Notemaster v1.0)</h1>
 
     <div class="controls">
         <h2>ファイル・ハッシュデータの操作</h2>
@@ -258,6 +258,9 @@
         const NOTE_TYPE_LONG = 1;
         const PATTERN_STEP_BEAT = 0.25; // 16分音符は0.25拍
         
+        // 互換性チェック用
+        const CURRENT_EDITOR_VERSION = "notemasterv.1.0";
+        
         let currentNotes = []; 
         let copiedNotes = [];  
         let editingNoteIndex = -1;
@@ -273,6 +276,42 @@
         function round(value, decimals) {
             return Number(Math.round(value + 'e' + decimals) + 'e-' + decimals);
         }
+        
+        /**
+         * 2つのバージョン文字列を比較する
+         * @param {string} v1 - 比較対象のバージョン ("notemasterv.X.Y")
+         * @param {string} v2 - 基準となるバージョン ("notemasterv.X.Y")
+         * @returns {number} 1: v1が新しい, 0: 同じ, -1: v1が古い
+         */
+        function compareVersions(v1, v2) {
+            if (v1 === v2) return 0;
+            
+            // 正規表現で [メジャー, マイナー] の配列を抽出
+            const parseVersion = (v) => {
+                // v.X.Y の形式に一致
+                const match = v.match(/v\.(\d+)\.(\d+)/); 
+                if (match) {
+                    // 数値に変換して返す
+                    return [parseInt(match[1]), parseInt(match[2])]; 
+                }
+                // バージョン情報がない、または形式が異なる場合は [0, 0] とみなす
+                return [0, 0];
+            };
+
+            const [major1, minor1] = parseVersion(v1);
+            const [major2, minor2] = parseVersion(v2);
+
+            // メジャーバージョン比較
+            if (major1 > major2) return 1;
+            if (major1 < major2) return -1;
+            
+            // メジャーが等しい場合、マイナーバージョン比較
+            if (minor1 > minor2) return 1;
+            if (minor1 < minor2) return -1;
+
+            return 0; // 実質的には同一バージョン
+        }
+
 
         // --- 3. データ永続化 (ハッシュ) ---
         function saveToHash() {
@@ -310,9 +349,10 @@
                 const loadedData = JSON.parse(decompressed);
                 
                 if (loadedData.notes && Array.isArray(loadedData.notes)) {
+                    // ここもセーフティチェックを利用 (beatsPerMeasureはハッシュデータには含まれないため、手動でセットする)
                     document.getElementById('title').value = loadedData.title || 'Loaded Score';
                     document.getElementById('bpm').value = loadedData.bpm || 160.0;
-                    document.getElementById('beatsPerMeasure').value = loadedData.beatsPerMeasure || 4;
+                    document.getElementById('beatsPerMeasure').value = loadedData.beatsPerMeasure || 4; // 新しいバージョンのハッシュなら含まれる
                     
                     currentNotes = loadedData.notes;
                     sortNotesAndRefresh();
@@ -349,26 +389,58 @@
                          throw new Error("JSON形式が正しくありません。'notes'配列が見つかりません。");
                     }
                     
+                    // --- 互換性チェック ---
+                    const loadedVersion = loadedData.editor;
+                    
+                    if (loadedVersion) {
+                        const comparisonResult = compareVersions(loadedVersion, CURRENT_EDITOR_VERSION);
+                        
+                        if (comparisonResult === 1) {
+                            // ファイルがエディターより新しい場合に読み込みを拒否
+                            alert(`🚨 読み込み拒否: 読み込んだファイルは現在のエディターバージョン (${CURRENT_EDITOR_VERSION}) より新しいバージョン (${loadedVersion}) で作成されているため、データが破損する可能性があるため読み込みを拒否しました。エディターを最新版に更新してください。`);
+                            fileInput.value = ''; 
+                            return; // 読み込みを拒否して処理を終了
+                        } else if (comparisonResult === -1) {
+                            // ファイルがエディターより古い
+                            alert(`⚠️ 警告: 読み込んだファイルは古いバージョン (${loadedVersion}) のエディターで作成されました。一部の機能（例: 拍子設定）が欠落している可能性があります。`);
+                        } else {
+                            // バージョンが一致
+                            alert(`✅ 読み込んだファイルは現在のバージョン (${CURRENT_EDITOR_VERSION}) と互換性があります。`);
+                        }
+                    } else {
+                         alert(`ℹ️ 情報: 読み込んだファイルにはエディターバージョン情報がありません。古いバージョンのデータとみなし、読み込みを続行します。`);
+                    }
+                    // ---------------------
+                    
+                    // === ヘッダー情報のロード（防御的アクセス） ===
                     document.getElementById('title').value = loadedData.song_title || 'File Loaded Score';
                     document.getElementById('bpm').value = loadedData.bpm || 160.0;
-                    document.getElementById('beatsPerMeasure').value = loadedData.beatsPerMeasure || 4;
+                    // beatsPerMeasureがない場合、安全なデフォルト値「4」を使用
+                    document.getElementById('beatsPerMeasure').value = loadedData.beatsPerMeasure || 4; 
                     
                     const loadedBPM = parseFloat(loadedData.bpm) || 160.0;
                     const secPerBeat = 60.0 / loadedBPM;
 
-                    const beatNotes = loadedData.notes.map(note => {
-                        const beat = round(note.time / secPerBeat, 2); 
-                        let newNote = { beat: beat, lane: note.lane, type: note.type };
-                        
-                        if (note.type === NOTE_TYPE_LONG && note.duration) {
-                            newNote.duration_beats = round(note.duration / secPerBeat, 2); 
-                        }
-                        return newNote;
-                    });
+                    // === ノーツデータのロード（コアデータ欠損をフィルタリング） ===
+                    const beatNotes = loadedData.notes
+                        .filter(note => 
+                            note.time !== undefined && 
+                            note.lane !== undefined && 
+                            note.type !== undefined
+                        )
+                        .map(note => {
+                            const beat = round(note.time / secPerBeat, 2); 
+                            let newNote = { beat: beat, lane: note.lane, type: note.type };
+                            
+                            // Longノーツかつdurationが存在する場合のみ処理
+                            if (note.type === NOTE_TYPE_LONG && note.duration !== undefined) { 
+                                newNote.duration_beats = round(note.duration / secPerBeat, 2); 
+                            }
+                            return newNote;
+                        });
                     
                     currentNotes = beatNotes; 
                     sortNotesAndRefresh();
-                    alert(`✅ ファイル "${file.name}" を正常に読み込みました。`);
                     
                     updateBeatFromMeasure();
                     cancelEdit();
@@ -915,7 +987,7 @@
                     "type": note.type
                 };
                 
-                if (note.type === NOTE_TYPE_LONG) {
+                if (note.type === NOTE_TYPE_LONG && note.duration_beats) { // duration_beatsの存在をチェック
                     const duration_sec = round(note.duration_beats * secPerBeat, 4);
                     noteObj["duration"] = duration_sec;
                 }
@@ -925,6 +997,8 @@
             const scoreData = {
                 "song_title": title,
                 "bpm": bpm,
+                "editor": CURRENT_EDITOR_VERSION, // CURRENT_EDITOR_VERSIONを使用
+                "beatsPerMeasure": parseInt(document.getElementById('beatsPerMeasure').value), // beatsPerMeasureを追加
                 "notes": finalNotes
             };
             
