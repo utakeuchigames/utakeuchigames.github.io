@@ -6,19 +6,19 @@
             "time": 1.4286,
             "lane": 1,
             "type": 1,
-            "duration": 2
+            "duration": 1.8571
         },
         {
             "time": 1.4286,
             "lane": 3,
             "type": 1,
-            "duration": 2
+            "duration": 1.8571
         },
         {
             "time": 1.4286,
             "lane": 6,
             "type": 1,
-            "duration": 2
+            "duration": 1.8571
         },
         {
             "time": 3.4286,
@@ -39,19 +39,19 @@
             "time": 3.7143,
             "lane": 2,
             "type": 1,
-            "duration": 2
+            "duration": 1.8571
         },
         {
             "time": 3.7143,
             "lane": 4,
             "type": 1,
-            "duration": 2
+            "duration": 1.8571
         },
         {
             "time": 3.7143,
             "lane": 5,
             "type": 1,
-            "duration": 2
+            "duration": 1.8571
         },
         {
             "time": 5.7143,
@@ -72,19 +72,19 @@
             "time": 6,
             "lane": 2,
             "type": 1,
-            "duration": 2
+            "duration": 1.8571
         },
         {
             "time": 6,
             "lane": 5,
             "type": 1,
-            "duration": 2
+            "duration": 1.8571
         },
         {
             "time": 6,
             "lane": 6,
             "type": 1,
-            "duration": 2
+            "duration": 1.8571
         },
         {
             "time": 8,
@@ -105,7 +105,7 @@
             "time": 8.2857,
             "lane": 2,
             "type": 1,
-            "duration": 1.1429
+            "duration": 2.2857
         },
         {
             "time": 8.2857,
@@ -132,12 +132,6 @@
             "duration": 0.5714
         },
         {
-            "time": 9.4286,
-            "lane": 2,
-            "type": 1,
-            "duration": 0.5714
-        },
-        {
             "time": 10,
             "lane": 4,
             "type": 1,
@@ -146,12 +140,6 @@
         {
             "time": 10,
             "lane": 5,
-            "type": 1,
-            "duration": 0.5714
-        },
-        {
-            "time": 10,
-            "lane": 2,
             "type": 1,
             "duration": 0.5714
         },
