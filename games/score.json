@@ -1,6 +1,7 @@
 {
     "song_title": "Enhanced Editor Score",
     "bpm": 210,
+    "editor": "notemasterv.1.0",
     "notes": [
         {
             "time": 1.4286,
@@ -10,7 +11,7 @@
         },
         {
             "time": 1.4286,
-            "lane": 3,
+            "lane": 4,
             "type": 1,
             "duration": 1.8571
         },
