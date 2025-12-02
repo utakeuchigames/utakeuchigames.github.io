@@ -105,43 +105,43 @@
             "time": 8.2857,
             "lane": 2,
             "type": 1,
-            "duration": 2.2857
+            "duration": 2.1429
         },
         {
             "time": 8.2857,
             "lane": 4,
             "type": 1,
-            "duration": 1.1429
+            "duration": 1
         },
         {
             "time": 8.2857,
             "lane": 5,
             "type": 1,
-            "duration": 1.1429
+            "duration": 1
         },
         {
             "time": 9.4286,
             "lane": 6,
             "type": 1,
-            "duration": 0.5714
+            "duration": 0.4286
         },
         {
             "time": 9.4286,
             "lane": 5,
             "type": 1,
-            "duration": 0.5714
+            "duration": 0.4286
         },
         {
             "time": 10,
             "lane": 4,
             "type": 1,
-            "duration": 0.5714
+            "duration": 0.4286
         },
         {
             "time": 10,
             "lane": 5,
             "type": 1,
-            "duration": 0.5714
+            "duration": 0.4286
         },
         {
             "time": 10.5714,
