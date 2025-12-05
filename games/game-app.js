@@ -2,9 +2,17 @@
 let scoreData = null;       // 譜面データ (JSONオブジェクト)
 let musicBuffer = null;     // 音楽データ (Web Audio APIのAudioBuffer)
 const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+let audioSource = null;     // 再生用のAudioBufferSourceNode
 
 let canvas;
 let ctx; 
+
+// ゲームプレイ用変数
+let startTime = 0;          // 音楽再生開始時刻 (秒)
+let currentNoteIndex = 0;   // 処理中のノーツインデックス
+// 💡 6レーンに対応するため、レーン計算を変更
+const RECEIVE_LINE_Y = 550; // ノーツを受け取る判定線のY座標
+const NOTE_SPEED = 200;     // ノーツ速度 (ピクセル/秒)
 
 document.addEventListener('DOMContentLoaded', () => {
     canvas = document.getElementById('gameCanvas');
@@ -18,8 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 /**
- * .nmpackファイル（ZIP）を読み込み、譜面と音楽を抽出する
- * @param {Event} event 
+ * .nmpackファイル（ZIP）を読み込み、譜面と音楽を抽出する (省略なし)
  */
 function loadScorePackage(event) {
     const file = event.target.files[0];
@@ -36,7 +43,6 @@ function loadScorePackage(event) {
 
         JSZip.loadAsync(e.target.result).then(function(zip) {
             
-            // 2. score.json の抽出
             const scoreJsonFile = zip.file("score.json");
             if (!scoreJsonFile) {
                 document.getElementById('status').textContent = `エラー: ZIP内に 'score.json' が見つかりません。`;
@@ -49,13 +55,11 @@ function loadScorePackage(event) {
                     document.getElementById('scoreDataOutput').textContent = 
                         `【譜面データ】\n曲名: ${scoreData.song_title}\nBPM: ${scoreData.bpm}\nノーツ数: ${scoreData.notes.length}`;
                     
-                    // 3. config.json から音楽ファイル名を取得 (推奨)
                     zip.file("config.json")?.async("string").then(function (configString) {
                         const config = JSON.parse(configString);
                         const musicFileName = config.music_file;
                         loadMusicFile(zip, musicFileName);
                     }).catch(() => {
-                        // config.json がない場合、一般的なファイル名で試行
                         console.warn("config.jsonが見つかりません。mp3/oggで試行します。");
                         loadMusicFile(zip, 'music.mp3') || loadMusicFile(zip, 'music.ogg');
                     });
@@ -75,7 +79,7 @@ function loadScorePackage(event) {
 }
 
 /**
- * ZIPファイルから音楽ファイルを抽出し、Web Audio APIでデコードする
+ * ZIPファイルから音楽ファイルを抽出し、Web Audio APIでデコードする (省略なし)
  * @param {JSZip} zip 
  * @param {string} fileName 
  */
@@ -91,14 +95,12 @@ function loadMusicFile(zip, fileName) {
 
     document.getElementById('status').textContent = `音楽ファイル '${fileName}' をデコード中... (Web Audio API)`;
 
-    // 4. 音楽ファイルを ArrayBuffer として抽出し、デコード
     musicFile.async("arraybuffer").then(function (buffer) {
         
         audioContext.decodeAudioData(buffer, function(decodedBuffer) {
             
             musicBuffer = decodedBuffer;
             
-            // 💡 読み込み完了後、画面を切り替えてゲームを初期化
             initializeGame(scoreData, musicBuffer); 
 
         }, function(error) {
@@ -123,24 +125,130 @@ function loadMusicFile(zip, fileName) {
 function initializeGame(score, buffer) {
     if (!ctx) return;
     
-    // 💡 ファイル選択エリアを非表示にし、ゲームエリアを表示
+    // 画面切り替え
     document.getElementById('loaderArea').style.display = 'none';
     document.getElementById('gameArea').style.display = 'block';
     
-    document.getElementById('status').textContent = `✅ 譜面と音楽ファイルの読み込みが完了しました！再生準備OK。`;
+    // Web Audio APIの仕様で、最初のクリックがないと再生できないことがあるため、
+    // ここでは自動再生せず、メッセージを表示してクリックを促すのが安全だが、
+    // 開発用途のため自動で開始する
+    document.getElementById('status').textContent = `✅ 譜面と音楽ファイルの読み込みが完了しました！ゲーム開始中...`;
     
-    // 画面をクリアし、ロードされた情報を描画（初期メッセージ）
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // 音楽再生開始
+    audioSource = audioContext.createBufferSource();
+    audioSource.buffer = buffer;
+    audioSource.connect(audioContext.destination);
     
-    ctx.fillStyle = '#e74c3c';
-    ctx.fillText(score.song_title, canvas.width / 2, 100);
+    // ゲーム開始時刻を記録し、音楽を再生
+    startTime = audioContext.currentTime + 0.5; // 0.5秒のディレイ
+    audioSource.start(startTime);
     
-    ctx.fillStyle = '#3498db';
-    ctx.fillText(`BPM: ${score.bpm}`, canvas.width / 2, 150);
+    // ゲームループ開始
+    requestAnimationFrame(gameLoop);
+}
+
+
+/**
+ * 💡 ゲームメインループ (6レーン対応)
+ * @param {DOMHighResTimeStamp} timestamp 
+ */
+function gameLoop(timestamp) {
+    const canvasWidth = canvas.width;
+    const canvasHeight = canvas.height;
     
-    ctx.fillStyle = '#2ecc71';
-    ctx.fillText(`ノーツ数: ${score.notes.length}`, canvas.width / 2, 200);
+    // 💡 6レーンの設定
+    const LANE_COUNT = 6;
+    const LANE_WIDTH = canvasWidth / LANE_COUNT;
     
-    // ここで requestAnimationFrame を使ったゲームループを開始します
-    // startGameLoop(score, buffer); 
+    // 現在の曲の再生時刻を計算
+    const currentTime = audioContext.currentTime - startTime;
+
+    // 1. 画面クリア
+    ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+    
+    // 2. レーンと判定線の描画
+    
+    // 判定線
+    ctx.strokeStyle = '#2c3e50';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(0, RECEIVE_LINE_Y);
+    ctx.lineTo(canvasWidth, RECEIVE_LINE_Y);
+    ctx.stroke();
+
+    // レーンガイド (5本の縦線)
+    ctx.lineWidth = 1;
+    for (let i = 1; i < LANE_COUNT; i++) {
+        const x = LANE_WIDTH * i;
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvasHeight);
+        ctx.stroke();
+    }
+    
+    // 3. ノーツの描画
+    const notes = scoreData.notes;
+    
+    for (let i = 0; i < notes.length; i++) {
+        const note = notes[i];
+        
+        // 判定線に到達する時間 (note.time) からの差分
+        const timeRemaining = note.time - currentTime; 
+        
+        // 描画が必要なノーツのみ処理
+        if (timeRemaining > 2.5 || timeRemaining < -0.5) { 
+            continue;
+        }
+
+        // 判定線 (Y=RECEIVE_LINE_Y) に到達するために、ノーツが移動すべき距離
+        const distanceToReceiver = timeRemaining * NOTE_SPEED; 
+        
+        // ノーツの現在のY座標
+        const noteY = RECEIVE_LINE_Y - distanceToReceiver;
+
+        // 💡 レーンのX座標 (note.laneは1〜6。0〜5に変換して中央座標を計算)
+        const laneIndex = note.lane - 1; 
+        const noteX = (laneIndex * LANE_WIDTH) + (LANE_WIDTH / 2);
+        const noteRadius = 15;
+
+        // ノーツの描画
+        if (note.type === 0) { // Tap
+            ctx.fillStyle = '#f1c40f';
+            ctx.beginPath();
+            ctx.arc(noteX, noteY, noteRadius, 0, Math.PI * 2);
+            ctx.fill();
+        } else if (note.type === 1) { // Long
+            const duration_sec = note.duration || 0.5;
+
+            // ロングノーツのピクセルでの長さ
+            const longNoteHeight = duration_sec * NOTE_SPEED;
+
+            // 描画のY座標の始点と終点
+            const topY = noteY - longNoteHeight;
+            const bottomY = noteY;
+
+            // ロングノーツ本体の描画 (レーン幅いっぱいに描画)
+            ctx.fillStyle = 'rgba(52, 152, 219, 0.7)'; 
+            ctx.fillRect(noteX - (LANE_WIDTH / 2), topY, LANE_WIDTH, longNoteHeight);
+
+            // ロングノーツの始点の描画 (Tapと同じ円)
+            ctx.fillStyle = '#3498db';
+            ctx.beginPath();
+            ctx.arc(noteX, bottomY, noteRadius, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        // 画面上部に現在の時間と情報を表示 (デバッグ用)
+        ctx.fillStyle = '#000';
+        ctx.textAlign = 'left';
+        ctx.fillText(`Time: ${currentTime.toFixed(2)}s`, 10, 30);
+    }
+
+    // 4. 再帰的なループ呼び出し
+    if (currentTime < musicBuffer.duration + 2) { 
+        requestAnimationFrame(gameLoop);
+    } else {
+        document.getElementById('status').textContent = `ゲーム終了。ありがとうございました。`;
+        audioSource.stop();
+    }
 }
