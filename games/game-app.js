@@ -10,9 +10,9 @@ let ctx;
 // ゲームプレイ用変数
 let startTime = 0;          // 音楽再生開始時刻 (秒)
 let currentNoteIndex = 0;   // 処理中のノーツインデックス
-// 💡 6レーンに対応するため、レーン計算を変更
 const RECEIVE_LINE_Y = 550; // ノーツを受け取る判定線のY座標
-const NOTE_SPEED = 200;     // ノーツ速度 (ピクセル/秒)
+const NOTE_SPEED = 250;     // ノーツ速度 (ピクセル/秒) を少し上げた
+const PRE_RENDER_TIME = 2.0; // ノーツが画面上端に来るまでの時間 (秒)
 
 document.addEventListener('DOMContentLoaded', () => {
     canvas = document.getElementById('gameCanvas');
@@ -26,7 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 /**
- * .nmpackファイル（ZIP）を読み込み、譜面と音楽を抽出する (省略なし)
+ * .nmpackファイル（ZIP）を読み込み、譜面と音楽を抽出する (省略)
  */
 function loadScorePackage(event) {
     const file = event.target.files[0];
@@ -79,7 +79,7 @@ function loadScorePackage(event) {
 }
 
 /**
- * ZIPファイルから音楽ファイルを抽出し、Web Audio APIでデコードする (省略なし)
+ * ZIPファイルから音楽ファイルを抽出し、Web Audio APIでデコードする (省略)
  * @param {JSZip} zip 
  * @param {string} fileName 
  */
@@ -118,59 +118,50 @@ function loadMusicFile(zip, fileName) {
 
 
 /**
- * ロード完了後の画面切り替えとゲーム初期化
+ * ロード完了後の画面切り替えとゲーム初期化 (省略)
  * @param {object} score - 譜面データ
  * @param {AudioBuffer} buffer - デコードされた音楽バッファ
  */
 function initializeGame(score, buffer) {
     if (!ctx) return;
     
-    // 画面切り替え
     document.getElementById('loaderArea').style.display = 'none';
     document.getElementById('gameArea').style.display = 'block';
-    
-    // Web Audio APIの仕様で、最初のクリックがないと再生できないことがあるため、
-    // ここでは自動再生せず、メッセージを表示してクリックを促すのが安全だが、
-    // 開発用途のため自動で開始する
     document.getElementById('status').textContent = `✅ 譜面と音楽ファイルの読み込みが完了しました！ゲーム開始中...`;
     
-    // 音楽再生開始
     audioSource = audioContext.createBufferSource();
     audioSource.buffer = buffer;
     audioSource.connect(audioContext.destination);
     
-    // ゲーム開始時刻を記録し、音楽を再生
-    startTime = audioContext.currentTime + 0.5; // 0.5秒のディレイ
+    startTime = audioContext.currentTime + 0.5; 
     audioSource.start(startTime);
     
-    // ゲームループ開始
     requestAnimationFrame(gameLoop);
 }
 
 
 /**
- * 💡 ゲームメインループ (6レーン対応)
+ * 💡 ゲームメインループ (ノーツ落下ロジック修正済み)
  * @param {DOMHighResTimeStamp} timestamp 
  */
 function gameLoop(timestamp) {
     const canvasWidth = canvas.width;
     const canvasHeight = canvas.height;
     
-    // 💡 6レーンの設定
+    // 6レーンの設定
     const LANE_COUNT = 6;
     const LANE_WIDTH = canvasWidth / LANE_COUNT;
     
-    // 現在の曲の再生時刻を計算
     const currentTime = audioContext.currentTime - startTime;
 
     // 1. 画面クリア
     ctx.clearRect(0, 0, canvasWidth, canvasHeight);
     
     // 2. レーンと判定線の描画
-    
-    // 判定線
     ctx.strokeStyle = '#2c3e50';
     ctx.lineWidth = 4;
+    
+    // 判定線
     ctx.beginPath();
     ctx.moveTo(0, RECEIVE_LINE_Y);
     ctx.lineTo(canvasWidth, RECEIVE_LINE_Y);
@@ -192,21 +183,24 @@ function gameLoop(timestamp) {
     for (let i = 0; i < notes.length; i++) {
         const note = notes[i];
         
-        // 判定線に到達する時間 (note.time) からの差分
+        // 判定線に到達するまでの残り時間 (秒)
         const timeRemaining = note.time - currentTime; 
         
-        // 描画が必要なノーツのみ処理
-        if (timeRemaining > 2.5 || timeRemaining < -0.5) { 
+        // 描画が必要なノーツのみ処理 (画面上端から判定線までの時間 + 判定線通過後の時間)
+        // 画面上端 = RECEIVE_LINE_Y / NOTE_SPEED = 550 / 250 = 2.2秒
+        if (timeRemaining > (RECEIVE_LINE_Y / NOTE_SPEED) + 0.1 || timeRemaining < -0.5) { 
             continue;
         }
 
-        // 判定線 (Y=RECEIVE_LINE_Y) に到達するために、ノーツが移動すべき距離
-        const distanceToReceiver = timeRemaining * NOTE_SPEED; 
-        
-        // ノーツの現在のY座標
-        const noteY = RECEIVE_LINE_Y - distanceToReceiver;
+        // 💡 ノーツのY座標計算を修正
+        // ノーツは "判定線までの距離 (RECEIVE_LINE_Y)" から、
+        // ノーツが "判定線に到達するまでの時間" に応じた移動距離を引いた位置に描画する。
+        const pixelsToMove = timeRemaining * NOTE_SPEED; 
+        const noteY = RECEIVE_LINE_Y - pixelsToMove; 
+        // timeRemainingが2.0秒のとき (判定線から500px上)、noteY = 550 - 500 = 50。
+        // timeRemainingが0.0秒のとき (判定線上)、noteY = 550 - 0 = 550。 -> OK
 
-        // 💡 レーンのX座標 (note.laneは1〜6。0〜5に変換して中央座標を計算)
+        // レーンのX座標
         const laneIndex = note.lane - 1; 
         const noteX = (laneIndex * LANE_WIDTH) + (LANE_WIDTH / 2);
         const noteRadius = 15;
@@ -223,15 +217,16 @@ function gameLoop(timestamp) {
             // ロングノーツのピクセルでの長さ
             const longNoteHeight = duration_sec * NOTE_SPEED;
 
-            // 描画のY座標の始点と終点
+            // 描画のY座標の始点 (上端)
             const topY = noteY - longNoteHeight;
             const bottomY = noteY;
 
-            // ロングノーツ本体の描画 (レーン幅いっぱいに描画)
+            // ロングノーツ本体の描画
             ctx.fillStyle = 'rgba(52, 152, 219, 0.7)'; 
+            // 💡 topY (ノーツの上端) は判定線より上 (Y座標が小さい)
             ctx.fillRect(noteX - (LANE_WIDTH / 2), topY, LANE_WIDTH, longNoteHeight);
 
-            // ロングノーツの始点の描画 (Tapと同じ円)
+            // ロングノーツの始点 (判定線に近い方) の描画
             ctx.fillStyle = '#3498db';
             ctx.beginPath();
             ctx.arc(noteX, bottomY, noteRadius, 0, Math.PI * 2);
