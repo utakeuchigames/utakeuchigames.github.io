@@ -16,10 +16,18 @@ const NOTE_SPEED = 250;     // ノーツ速度 (ピクセル/秒)
 document.addEventListener('DOMContentLoaded', () => {
     canvas = document.getElementById('gameCanvas');
     if (canvas) {
-        ctx = canvas.getContext('2d');
-        ctx.font = '30px Arial';
-        ctx.fillStyle = '#2c3e50';
-        ctx.textAlign = 'center';
+        try {
+            ctx = canvas.getContext('2d');
+            ctx.font = '30px Arial';
+            ctx.fillStyle = '#2c3e50';
+            ctx.textAlign = 'center';
+            console.log("Canvas context initialized.");
+        } catch (e) {
+            console.error("Failed to get 2D context:", e);
+        }
+    } else {
+        console.error("Canvas element 'gameCanvas' not found in the DOM.");
+        document.getElementById('status').textContent = `致命的なエラー: gameCanvas要素が見つかりません。HTMLファイルを確認してください。`;
     }
 });
 
@@ -118,12 +126,16 @@ function loadMusicFile(zip, fileName) {
 
 
 /**
- * ロード完了後の画面切り替えとゲーム初期化 (修正済み)
+ * ロード完了後の画面切り替えとゲーム初期化
  * @param {object} score - 譜面データ
  * @param {AudioBuffer} buffer - デコードされた音楽バッファ
  */
 function initializeGame(score, buffer) {
-    if (!ctx) return;
+    if (!ctx) {
+        document.getElementById('status').textContent = `エラー: Canvasのコンテキストが初期化されていません。`;
+        console.error("Initialization failed: Canvas Context (ctx) is null.");
+        return; 
+    }
     
     // 画面切り替え
     document.getElementById('loaderArea').style.display = 'none';
@@ -136,17 +148,16 @@ function initializeGame(score, buffer) {
     audioSource.buffer = buffer;
     audioSource.connect(audioContext.destination);
     
-    // 💡 修正点: AudioContextがSuspended状態の場合に再開を試みる (ブラウザの自動再生ブロック対策)
+    // AudioContextがSuspended状態の場合に再開を試みる (ブラウザの自動再生ブロック対策)
     if (audioContext.state === 'suspended') {
         audioContext.resume().then(() => {
-            console.log("AudioContext re-enabled!");
+            console.log("AudioContext re-enabled.");
             startPlaybackAndLoop(buffer);
         }).catch(err => {
             console.error("AudioContext resume failed:", err);
             document.getElementById('status').textContent = `エラー: AudioContextの再開に失敗しました。ユーザー操作が必要です。`;
         });
     } else {
-         // 既にRunning状態であればそのまま開始
          startPlaybackAndLoop(buffer);
     }
 }
@@ -165,7 +176,7 @@ function startPlaybackAndLoop(buffer) {
 
 
 /**
- * ゲームメインループ (6レーン、ノーツ落下ロジック修正済み)
+ * ゲームメインループ
  * @param {DOMHighResTimeStamp} timestamp 
  */
 function gameLoop(timestamp) {
@@ -176,9 +187,8 @@ function gameLoop(timestamp) {
     const LANE_COUNT = 6;
     const LANE_WIDTH = canvasWidth / LANE_COUNT;
     
-    // 💡 currentTimeが更新されているかチェック
     const currentTime = audioContext.currentTime - startTime;
-    
+
     // 1. 画面クリア
     ctx.clearRect(0, 0, canvasWidth, canvasHeight);
     
@@ -216,7 +226,7 @@ function gameLoop(timestamp) {
             continue;
         }
 
-        // ノーツのY座標計算: timeRemainingが0に向かうにつれてnoteYが増加(落下)する
+        // ノーツのY座標計算
         const pixelsToMove = timeRemaining * NOTE_SPEED; 
         const noteY = RECEIVE_LINE_Y - pixelsToMove; 
 
