@@ -2,81 +2,37 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rhythm Game</title>
+    <title>Notemaster Rhythm Game</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
-        body {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            background-color: #333;
-            font-family: Arial, sans-serif;
-        }
-
-        /* ゲームコンテナ：Canvasと判定エリアを並べるためのコンテナ */
-        #gameContainer {
-            display: flex; /* 横並びにする */
-            position: relative;
-            /* widthは800 + 200 = 1000px */
-            border: 1px solid white;
-        }
-
         #gameCanvas {
-            background-color: black;
+            border: 2px solid #3498db;
             display: block;
-        }
-
-        /* ログエリア: Canvasの左上 */
-        #log {
-            position: absolute; 
-            top: 5px; 
-            left: 5px; 
-            width: 300px;
-            height: 150px; 
-            overflow-y: auto; 
-            z-index: 1000;
-            background-color: rgba(0, 0, 0, 0.7); 
-            color: yellow; 
-            padding: 5px;
-            font-family: monospace;
-            font-size: 12px;
-        }
-
-        /* ★新規追加: 判定表示エリア (Canvasの右側) */
-        #judgementDisplay {
-            width: 200px; /* 判定エリアの幅 */
-            height: 600px; /* Canvasと同じ高さ */
-            background-color: #111;
-            display: flex;
-            flex-direction: column;
-            justify-content: center; /* 垂直方向中央寄せ */
-            align-items: center; /* 水平方向中央寄せ */
-            color: white;
-            font-size: 36px;
-            font-weight: bold;
-            text-align: center;
-        }
-
-        /* 判定テキストのスタイル */
-        #judgementText {
-            opacity: 1;
-            transition: opacity 0.1s ease-out; /* フェードアウト用 */
+            margin: 20px auto;
+            background-color: #ecf0f1;
         }
     </style>
 </head>
 <body>
-    <div id="gameContainer">
-        <div id="log">ログ:</div> 
-        
-        <canvas id="gameCanvas" width="800" height="600"></canvas>
-
-        <div id="judgementDisplay">
-            <div id="judgementText">---</div>
+    
+    <div id="loaderArea">
+        <h1>譜面パッケージ (.nmpack) ローダー</h1>
+        <div>
+            <label for="packageFileInput">パッケージファイル (.nmpack) を選択:</label>
+            <input type="file" id="packageFileInput" accept=".nmpack" onchange="loadScorePackage(event)">
         </div>
     </div>
+    
+    <div id="gameArea" style="display: none;">
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+    </div>
 
-    <script src="game.js?v=g"></script>
+    <hr>
+    <h2>現在のステータスと詳細</h2>
+    <div id="status">ファイルをアップロードしてください...</div>
+    <div id="scoreDataOutput" style="white-space: pre-wrap;"></div>
+
+    <script src="game-app.js"></script>
 </body>
 </html>
