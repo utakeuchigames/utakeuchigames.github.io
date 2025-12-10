@@ -12,7 +12,8 @@
         
         // 2. 1ミリ秒後に、自分自身（infiniteBananas）を再度呼び出す
         //    これにより、ブラウザのメインスレッドをフリーズさせずに連続実行を試みる
-        setTimeout(infiniteBananas, 1); 
+        infiniteBananas();
+        //setTimeout(infiniteBananas, 1); 
     }
 
     // ページが完全に読み込まれたら、機能を実行
