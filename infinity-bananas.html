@@ -1,14 +1,24 @@
 <!DOCTYPE HTML>
-<HTML>
+<html>
 <head>
     <title>バナナのナス、バナナス</title>
 </head>
 <body>
 <script>
-    let i = 1;
-while (i) {
-    alert("バナナのナス、バナナス");
-}
+    // 無限アラート機能を定義
+    function infiniteBananas() {
+        // 1. アラートを出す
+        alert("バナナのナス、バナナス");
+        
+        // 2. 1ミリ秒後に、自分自身（infiniteBananas）を再度呼び出す
+        //    これにより、ブラウザのメインスレッドをフリーズさせずに連続実行を試みる
+        setTimeout(infiniteBananas, 1); 
+    }
+
+    // ページが完全に読み込まれたら、機能を実行
+    window.onload = function() {
+        infiniteBananas(); 
+    };
 </script>
 </body>
-</HTML>
+</html>
