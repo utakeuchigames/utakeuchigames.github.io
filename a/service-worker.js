@@ -5,7 +5,7 @@ const urlsToCache = [
   './index.html',
   './main.js',
   './manifest.json',
-  './icon.ico'
+  
 ];
 
 // 💾 インストール時にキャッシュ作成
