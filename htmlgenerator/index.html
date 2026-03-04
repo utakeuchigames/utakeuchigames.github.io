@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HTML/XHTML/HTML4.01 統合ジェネレーター</title>
+    <title>HTML/XHTML head完全統合ジェネレーター</title>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <style>
-        body { font-family: sans-serif; padding: 20px; line-height: 1.6; max-width: 900px; margin: 0 auto; background-color: #f4f7f6; }
+        body { font-family: sans-serif; padding: 20px; line-height: 1.6; max-width: 900px; margin: 0 auto; background-color: #f4f7f6; color: #333; }
         .card { background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-bottom: 25px; }
         label { font-weight: bold; display: block; margin-top: 15px; }
         select, input, textarea { width: 100%; padding: 12px; margin-top: 8px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; }
@@ -23,30 +23,38 @@
     <h1>HTML headタグ・ジェネレーター</h1>
 
     <div class="card">
-        <label>1. 文書形式を選択してください (DTD宣言)</label>
+        <label>1. 文書形式 (DTD宣言) と タイトル</label>
         <select id="dtd-select">
             <option value="html5">HTML5 (現在の標準)</option>
-            <option value="html4.01">HTML 4.01 Strict (古いデバイス向け)</option>
-            <option value="xhtml">XHTML 1.0 Strict (厳格な形式)</option>
+            <option value="html4.01">HTML 4.01 Strict (古いパソコン・デバイス向け)</option>
+            <option value="xhtml">XHTML 1.0 Strict (記述が厳格な形式)</option>
         </select>
-        <label>2. ページのタイトル</label>
-        <input type="text" id="page-title" placeholder="Document">
+        <input type="text" id="page-title" placeholder="Document (titleタグ)">
     </div>
 
     <div class="card">
-        <label>3. 追加したい情報を選択</label>
+        <label>2. 追加したいタグを選択してください</label>
         <select id="add-tag-type">
             <optgroup label="メタ情報 (Meta)">
                 <option value="meta-description" data-input="textarea">説明文 (description)</option>
                 <option value="meta-author" data-input="text">作成者 (author)</option>
-                <option value="meta-robots" data-input="select">巡回指示 (robots)</option>
+                <option value="meta-keywords" data-input="text">キーワード (keywords)</option>
+                <option value="meta-robots" data-input="select-robots">検索エンジン指示 (robots)</option>
+                <option value="meta-theme-color" data-input="color">テーマ色 (theme-color)</option>
+                <option value="meta-og:title" data-input="text">共有タイトル (og:title)</option>
+                <option value="meta-og:description" data-input="textarea">共有説明文 (og:description)</option>
+                <option value="meta-og:image" data-input="text">共有画像URL (og:image)</option>
             </optgroup>
             <optgroup label="外部連携 (Link)">
-                <option value="link-stylesheet" data-input="text">スタイルシート (stylesheet)</option>
+                <option value="link-stylesheet" data-input="text">CSSファイル (stylesheet)</option>
                 <option value="link-icon" data-input="text">アイコン (favicon)</option>
+                <option value="link-canonical" data-input="text">正規URL (canonical)</option>
+            </optgroup>
+            <optgroup label="スクリプト (Script)">
+                <option value="script-src" data-input="text">外部JSファイル (script src)</option>
             </optgroup>
         </select>
-        <button type="button" id="btn-add-item" class="btn-add">+ リストに追加する</button>
+        <button type="button" id="btn-add-item" class="btn-add">+ 項目を追加する</button>
     </div>
 
     <form id="gen-form">
@@ -58,7 +66,7 @@
 
     <script>
     $(function() {
-        // 11歳の全書き：動的追加ロジック
+        // 項目の動的追加処理
         $('#btn-add-item').on('click', function() {
             const $opt = $('#add-tag-type option:selected');
             const type = $opt.val();
@@ -66,15 +74,20 @@
             const inType = $opt.data('input');
             
             let html = (inType === 'textarea') ? `<textarea class="val"></textarea>` :
-                       (inType === 'select') ? `<select class="val"><option value="index,follow">許可</option><option value="noindex,nofollow">拒否</option></select>` :
-                       `<input type="text" class="val">`;
+                       (inType === 'select-robots') ? `<select class="val"><option value="index,follow">許可</option><option value="noindex,nofollow">拒否</option></select>` :
+                       (inType === 'color') ? `<input type="color" class="val" style="height:50px;">` :
+                       `<input type="text" class="val" placeholder="内容またはURLを入力">`;
 
-            $('#item-container').append(`<div class="item-box" data-type="${type}"><button type="button" class="btn-delete">削除</button><strong>${label}</strong><br>${html}</div>`);
+            $('#item-container').append(`
+                <div class="item-box" data-type="${type}">
+                    <button type="button" class="btn-delete">削除</button>
+                    <strong>[${label}] の設定</strong><br>${html}
+                </div>`);
         });
 
         $(document).on('click', '.btn-delete', function() { $(this).parent().remove(); });
 
-        // 11歳の全書き：真のマージ・ロジック（ 🖕 ）
+        // 生成とマージのメインロジック
         $('#gen-form').on('submit', function(e) {
             e.preventDefault();
             const dtd = $('#dtd-select').val();
@@ -82,7 +95,7 @@
             const title = $('#page-title').val() || 'Document';
             let codes = [];
 
-            // DTD宣言とhtmlタグの全書き（マージ是正）
+            // DTDおよびhtmlタグの属性処理
             if (dtd === 'html5') {
                 codes.push(`&lt;!DOCTYPE html&gt;`);
                 codes.push(`&lt;html lang="ja"&gt;`);
@@ -104,9 +117,13 @@
                 const val = $(this).find('.val').val();
                 if (val) {
                     if (type.startsWith('meta-')) {
-                        codes.push(`    &lt;meta name="${type.replace('meta-', '')}" content="${val}"${close}&gt;`);
+                        const name = type.replace('meta-', '');
+                        const attr = name.startsWith('og:') ? 'property' : 'name';
+                        codes.push(`    &lt;meta ${attr}="${name}" content="${val}"${close}&gt;`);
                     } else if (type.startsWith('link-')) {
                         codes.push(`    &lt;link rel="${type.replace('link-', '')}" href="${val}"${close}&gt;`);
+                    } else if (type === 'script-src') {
+                        codes.push(`    &lt;script src="${val}"&gt;&lt;/script&gt;`);
                     }
                 }
             });
