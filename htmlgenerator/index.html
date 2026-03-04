@@ -3,82 +3,83 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>XHTML対応・全属性セキュアジェネレーター</title>
+    <title>Meta/Link特化・最強ジェネレーター</title>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <style>
-        body { font-family: sans-serif; padding: 20px; max-width: 950px; margin: 0 auto; background-color: #f0f3f5; color: #2c3e50; }
+        body { font-family: sans-serif; padding: 20px; max-width: 1000px; margin: 0 auto; background-color: #f0f3f5; }
         .card { background: #fff; padding: 25px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); margin-bottom: 25px; border: 2px solid #34495e; }
         label { font-weight: bold; display: block; margin-bottom: 8px; }
-        input, select, textarea { width: 100%; padding: 12px; border: 2px solid #bdc3c7; border-radius: 8px; box-sizing: border-box; font-size: 14px; }
-        .error-msg { color: #e74c3c; font-weight: bold; display: none; margin-top: 8px; padding: 10px; border-radius: 5px; background: #fdf2f2; border: 1px solid #e74c3c; }
-        button { cursor: pointer; border: none; border-radius: 8px; padding: 12px 20px; font-weight: bold; transition: 0.2s; }
+        input, select { width: 100%; padding: 12px; border: 2px solid #bdc3c7; border-radius: 8px; box-sizing: border-box; }
+        .error-msg { color: #e74c3c; font-weight: bold; display: none; margin-top: 8px; padding: 10px; background: #fdf2f2; border: 1px solid #e74c3c; border-radius: 5px; }
+        button { cursor: pointer; border: none; border-radius: 8px; padding: 12px 20px; font-weight: bold; }
         .btn-add { background-color: #27ae60; color: #fff; width: 100%; margin-top: 10px; }
         .btn-generate { background-color: #2980b9; color: #fff; width: 100%; font-size: 1.2em; margin-top: 25px; }
-        .btn-delete { background-color: #c0392b; color: #fff; float: right; padding: 4px 10px; font-size: 11px; }
-        .item-box { border-left: 10px solid #2980b9; background: #ecf0f1; padding: 20px; margin: 15px 0; border-radius: 0 10px 10px 0; position: relative; }
+        .item-box { border-left: 10px solid #2980b9; background: #ecf0f1; padding: 20px; margin: 15px 0; position: relative; }
         .result-area { background: #1a1a1a; color: #2ecc71; padding: 25px; border-radius: 10px; white-space: pre-wrap; font-family: 'Consolas', monospace; display: none; margin-top: 25px; border: 3px solid #333; }
     </style>
 </head>
 <body>
 
-    <h1>真・HTML/XHTML 完全ジェネレーター</h1>
+    <h1>対ブリカス・Meta/Link 帝国ジェネレーター</h1>
 
     <div class="card">
-        <label>1. 文書形式 (DTD) & 基本設定</label>
+        <label>1. 文書形式設定</label>
         <select id="dtd-select">
-            <option value="html5">HTML5 (最新標準)</option>
-            <option value="xhtml1strict">XHTML 1.0 Strict (厳格形式)</option>
-            <option value="html4strict">HTML 4.01 Strict (レガシー)</option>
+            <option value="html5">HTML5 (標準)</option>
+            <option value="xhtml1strict">XHTML 1.0 Strict (厳格)</option>
         </select>
-        <input type="text" id="page-title" class="security-input" placeholder="ページタイトルを入力">
+        <input type="text" id="page-title" class="security-input" placeholder="サイトタイトルを入力">
         <div class="error-msg-box"></div>
     </div>
 
     <div class="card">
-        <label>2. 全属性から項目を選択 (エスケープ・記号禁止)</label>
+        <label>2. 項目追加 (Meta / Link / External JS)</label>
         <select id="add-tag-type">
-            <optgroup label="メタ情報 (Meta)">
+            <optgroup label="SEO / 基本 Meta">
                 <option value="meta-description">説明文 (description)</option>
                 <option value="meta-keywords">キーワード (keywords)</option>
                 <option value="meta-author">作成者 (author)</option>
-                <option value="meta-robots">巡回指示 (robots)</option>
-                <option value="meta-theme-color">テーマカラー (theme-color)</option>
-                <option value="meta-og:title">共有タイトル (og:title)</option>
-                <option value="meta-og:image">共有画像URL (og:image)</option>
+                <option value="meta-robots">検索エンジン回避 (robots: noindex,nofollow)</option>
+                <option value="meta-format-detection">電話番号自動リンク無効 (format-detection)</option>
             </optgroup>
-            <optgroup label="外部連携 (Link / Script)">
-                <option value="link-stylesheet">CSSファイル (stylesheet)</option>
+            <optgroup label="SNS連携 (OGP / Twitter)">
+                <option value="og-title">OGP: タイトル (og:title)</option>
+                <option value="og-description">OGP: 説明文 (og:description)</option>
+                <option value="og-image">OGP: 画像URL (og:image)</option>
+                <option value="og-type">OGP: ページタイプ (og:type)</option>
+                <option value="twitter-card">Twitter: カード種類 (summary_large_image)</option>
+            </optgroup>
+            <optgroup label="リソース (Link / Script)">
+                <option value="link-stylesheet">外部CSS (stylesheet)</option>
                 <option value="link-icon">ファビコン (icon)</option>
-                <option value="link-canonical">正規URL (canonical)</option>
-                <option value="script-src">外部JS (script src)</option>
+                <option value="link-apple-touch-icon">iPhoneアイコン (apple-touch-icon)</option>
+                <option value="link-canonical">正規化URL (canonical)</option>
+                <option value="script-src">外部JSファイル (script src)</option>
             </optgroup>
         </select>
-        <button type="button" id="btn-add-item" class="btn-add">+ 項目を追加してブリカスを待つ</button>
+        <button type="button" id="btn-add-item" class="btn-add">+ 項目をマージする</button>
     </div>
 
-    <form id="final-gen-form">
+    <form id="final-empire-form">
         <div id="container"></div>
-        <button type="submit" class="btn-generate">XHTML/全属性マージ生成</button>
+        <button type="submit" class="btn-generate">安全な head コードを生成</button>
     </form>
 
     <div id="result-display" class="result-area"></div>
 
     <script>
     $(function() {
-        // 11歳の全書き：動的要素への最強バリデーション (合格 🖕)
+        function secureEscape(str) {
+            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
         $(document).on('input', '.security-input', function() {
             const val = $(this).val();
             let $errBox = $(this).closest('.card, .item-box').find('.error-msg-box');
-            const killMsg = '<div class="error-msg">【不合格】今エスケープで誤魔化そうとしたな？ 死ね。</div>';
-
             if (/[">&]/.test(val)) {
-                if ($errBox.find('.error-msg').length === 0) {
-                    $errBox.html(killMsg).find('.error-msg').fadeIn(200);
-                }
-                $(this).css('border-color', '#e74c3c');
+                $errBox.html('<div class="error-msg">【不合格】今エスケープで誤魔化そうとしたな？ 死ね。</div>').find('.error-msg').show();
             } else {
-                $errBox.find('.error-msg').fadeOut(200, function() { $(this).remove(); });
-                $(this).css('border-color', '#bdc3c7');
+                $errBox.find('.error-msg').hide();
             }
         });
 
@@ -86,54 +87,41 @@
             const $opt = $('#add-tag-type option:selected');
             $('#container').append(`
                 <div class="item-box" data-type="${$opt.val()}">
-                    <button type="button" class="btn-delete">削除</button>
+                    <button type="button" onclick="$(this).parent().remove()" style="float:right">削除</button>
                     <strong>[${$opt.text()}]</strong><br>
                     <input type="text" class="security-input" placeholder="内容またはURLを入力">
                     <div class="error-msg-box"></div>
                 </div>`);
         });
 
-        $(document).on('click', '.btn-delete', function() { $(this).parent().remove(); });
-
-        $('#final-gen-form').on('submit', function(e) {
+        $('#final-empire-form').on('submit', function(e) {
             e.preventDefault();
             let secure = true;
             $('.security-input').each(function() { if (/[">&]/.test($(this).val())) secure = false; });
-
-            if (!secure) {
-                alert('今エスケープで誤魔化そうとしたな？ 死ね。');
-                return;
-            }
+            if (!secure) { alert('今エスケープで誤魔化そうとしたな？ 死ね。'); return; }
 
             const dtd = $('#dtd-select').val();
-            const isXHTML = (dtd === 'xhtml1strict');
-            const close = isXHTML ? ' /' : '';
+            const close = (dtd === 'xhtml1strict') ? ' /' : '';
             let codes = [];
 
-            // DTD宣言 & htmlタグの全書き (納得)
-            if (dtd === 'html5') {
-                codes.push('<!DOCTYPE html>\n<html lang="ja">');
-            } else if (isXHTML) {
-                codes.push('<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">\n<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja">');
-            } else {
-                codes.push('<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">\n<html lang="ja">');
-            }
+            if (dtd === 'html5') codes.push('<!DOCTYPE html>\n<html lang="ja">');
+            else codes.push('<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">\n<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja">');
 
-            codes.push('<head>');
-            codes.push('    <meta charset="UTF-8"' + close + '>');
-            codes.push('    <meta name="viewport" content="width=device-width, initial-scale=1.0"' + close + '>');
-            codes.push('    <title>' + ($('#page-title').val() || 'Document') + '</title>');
+            codes.push('<head>\n    <meta charset="UTF-8"' + close + '>\n    <title>' + secureEscape($('#page-title').val() || 'Document') + '</title>');
 
             $('.item-box').each(function() {
                 const type = $(this).data('type');
-                const val = $(this).find('input').val();
+                const val = secureEscape($(this).find('input').val());
                 if (val) {
                     if (type.startsWith('meta-')) {
-                        const name = type.replace('meta-', '');
-                        const attr = name.startsWith('og:') ? 'property' : 'name';
-                        codes.push(`    <meta ${attr}="${name}" content="${val}"${close}>`);
+                        codes.push(`    <meta name="${type.replace('meta-', '')}" content="${val}"${close}>`);
+                    } else if (type.startsWith('og-')) {
+                        codes.push(`    <meta property="og:${type.replace('og-', '')}" content="${val}"${close}>`);
+                    } else if (type.startsWith('twitter-')) {
+                        codes.push(`    <meta name="twitter:${type.replace('twitter-', '')}" content="${val}"${close}>`);
                     } else if (type.startsWith('link-')) {
-                        codes.push(`    <link rel="${type.replace('link-', '')}" href="${val}"${close}>`);
+                        let rel = type.replace('link-', '');
+                        codes.push(`    <link rel="${rel}" href="${val}"${close}>`);
                     } else if (type === 'script-src') {
                         codes.push(`    <script src="${val}"></script>`);
                     }
