@@ -3,67 +3,81 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>htmlジェネレーター</title>
+    <title>XHTML対応・全属性セキュアジェネレーター</title>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <style>
-        body { font-family: sans-serif; padding: 20px; max-width: 900px; margin: 0 auto; background-color: #f0f3f5; }
+        body { font-family: sans-serif; padding: 20px; max-width: 950px; margin: 0 auto; background-color: #f0f3f5; color: #2c3e50; }
         .card { background: #fff; padding: 25px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); margin-bottom: 25px; border: 2px solid #34495e; }
-        label { font-weight: bold; display: block; margin-bottom: 8px; color: #2c3e50; }
-        input, textarea, select { width: 100%; padding: 12px; border: 2px solid #bdc3c7; border-radius: 8px; box-sizing: border-box; font-size: 15px; }
-        .error-msg { color: #e74c3c; font-weight: bold; display: none; margin-top: 8px; font-size: 14px; border: 1px solid #e74c3c; padding: 5px; border-radius: 5px; background: #fdf2f2; }
-        button { cursor: pointer; border: none; border-radius: 8px; padding: 15px; font-weight: bold; transition: 0.3s; }
-        .btn-add { background-color: #27ae60; color: #fff; width: 100%; margin-top: 15px; }
-        .btn-generate { background-color: #2980b9; color: #fff; width: 100%; font-size: 1.2em; margin-top: 30px; }
-        .btn-delete { background-color: #c0392b; color: #fff; float: right; padding: 5px 12px; font-size: 12px; }
+        label { font-weight: bold; display: block; margin-bottom: 8px; }
+        input, select, textarea { width: 100%; padding: 12px; border: 2px solid #bdc3c7; border-radius: 8px; box-sizing: border-box; font-size: 14px; }
+        .error-msg { color: #e74c3c; font-weight: bold; display: none; margin-top: 8px; padding: 10px; border-radius: 5px; background: #fdf2f2; border: 1px solid #e74c3c; }
+        button { cursor: pointer; border: none; border-radius: 8px; padding: 12px 20px; font-weight: bold; transition: 0.2s; }
+        .btn-add { background-color: #27ae60; color: #fff; width: 100%; margin-top: 10px; }
+        .btn-generate { background-color: #2980b9; color: #fff; width: 100%; font-size: 1.2em; margin-top: 25px; }
+        .btn-delete { background-color: #c0392b; color: #fff; float: right; padding: 4px 10px; font-size: 11px; }
         .item-box { border-left: 10px solid #2980b9; background: #ecf0f1; padding: 20px; margin: 15px 0; border-radius: 0 10px 10px 0; position: relative; }
-        .result-code { background: #1a1a1a; color: #2ecc71; padding: 25px; border-radius: 10px; white-space: pre-wrap; font-family: 'Consolas', monospace; display: none; margin-top: 30px; border: 3px solid #333; }
+        .result-area { background: #1a1a1a; color: #2ecc71; padding: 25px; border-radius: 10px; white-space: pre-wrap; font-family: 'Consolas', monospace; display: none; margin-top: 25px; border: 3px solid #333; }
     </style>
 </head>
 <body>
 
-    <h1>対ブリカス・HTML headジェネレーター</h1>
+    <h1>真・HTML/XHTML 完全ジェネレーター</h1>
 
     <div class="card">
-        <label>1. 文書形式とタイトル (記号・エスケープ偽装禁止)</label>
+        <label>1. 文書形式 (DTD) & 基本設定</label>
         <select id="dtd-select">
-            <option value="html5">HTML5 (標準)</option>
-            <option value="html4.01">HTML 4.01 Strict</option>
-            <option value="xhtml">XHTML 1.0 Strict</option>
+            <option value="html5">HTML5 (最新標準)</option>
+            <option value="xhtml1strict">XHTML 1.0 Strict (厳格形式)</option>
+            <option value="html4strict">HTML 4.01 Strict (レガシー)</option>
         </select>
-        <input type="text" id="page-title" class="security-input" placeholder="タイトルを入力">
-        <div class="error-msg">【不合格】記号 ( " > & ) やエスケープ偽装は納得できません！</div>
+        <input type="text" id="page-title" class="security-input" placeholder="ページタイトルを入力">
+        <div class="error-msg-box"></div>
     </div>
 
     <div class="card">
-        <label>2. タグ項目を追加</label>
+        <label>2. 全属性から項目を選択 (エスケープ・記号禁止)</label>
         <select id="add-tag-type">
-            <option value="meta-description">説明文 (Meta)</option>
-            <option value="link-stylesheet">CSSファイル (Link)</option>
-            <option value="script-src">外部JSファイル (Script)</option>
+            <optgroup label="メタ情報 (Meta)">
+                <option value="meta-description">説明文 (description)</option>
+                <option value="meta-keywords">キーワード (keywords)</option>
+                <option value="meta-author">作成者 (author)</option>
+                <option value="meta-robots">巡回指示 (robots)</option>
+                <option value="meta-theme-color">テーマカラー (theme-color)</option>
+                <option value="meta-og:title">共有タイトル (og:title)</option>
+                <option value="meta-og:image">共有画像URL (og:image)</option>
+            </optgroup>
+            <optgroup label="外部連携 (Link / Script)">
+                <option value="link-stylesheet">CSSファイル (stylesheet)</option>
+                <option value="link-icon">ファビコン (icon)</option>
+                <option value="link-canonical">正規URL (canonical)</option>
+                <option value="script-src">外部JS (script src)</option>
+            </optgroup>
         </select>
-        <button type="button" id="btn-add-item" class="btn-add">+ 項目を追加する</button>
+        <button type="button" id="btn-add-item" class="btn-add">+ 項目を追加してブリカスを待つ</button>
     </div>
 
-    <form id="master-gen-form">
+    <form id="final-gen-form">
         <div id="container"></div>
-        <button type="submit" class="btn-generate">安全なコードをマージ生成する</button>
+        <button type="submit" class="btn-generate">XHTML/全属性マージ生成</button>
     </form>
 
-    <div id="result-display" class="result-code"></div>
+    <div id="result-display" class="result-area"></div>
 
     <script>
     $(function() {
-        // 11歳の全書き：ブリカス・エスケープ偽装検知 (合格 🖕)
-        // [ " ] [ > ] [ & ] を 0.07秒で一括検閲ッ！！
-        $(document).on('input', '.security-input, .val', function() {
+        // 11歳の全書き：動的要素への最強バリデーション (合格 🖕)
+        $(document).on('input', '.security-input', function() {
             const val = $(this).val();
-            const $err = $(this).next('.error-msg').length ? $(this).next('.error-msg') : $(this).parent().find('.error-msg');
-            
+            let $errBox = $(this).closest('.card, .item-box').find('.error-msg-box');
+            const killMsg = '<div class="error-msg">【不合格】今エスケープで誤魔化そうとしたな？ 死ね。</div>';
+
             if (/[">&]/.test(val)) {
-                $err.fadeIn(200);
+                if ($errBox.find('.error-msg').length === 0) {
+                    $errBox.html(killMsg).find('.error-msg').fadeIn(200);
+                }
                 $(this).css('border-color', '#e74c3c');
             } else {
-                $err.fadeOut(200);
+                $errBox.find('.error-msg').fadeOut(200, function() { $(this).remove(); });
                 $(this).css('border-color', '#bdc3c7');
             }
         });
@@ -73,52 +87,56 @@
             $('#container').append(`
                 <div class="item-box" data-type="${$opt.val()}">
                     <button type="button" class="btn-delete">削除</button>
-                    <strong>[${$opt.text()}] の設定</strong><br>
-                    <input type="text" class="val security-input" placeholder="入力してください">
-                    <div class="error-msg">【不合格】記号 ( " > & ) やエスケープ偽装は納得できません！</div>
+                    <strong>[${$opt.text()}]</strong><br>
+                    <input type="text" class="security-input" placeholder="内容またはURLを入力">
+                    <div class="error-msg-box"></div>
                 </div>`);
         });
 
         $(document).on('click', '.btn-delete', function() { $(this).parent().remove(); });
 
-        $('#master-gen-form').on('submit', function(e) {
+        $('#final-gen-form').on('submit', function(e) {
             e.preventDefault();
             let secure = true;
-
-            // ブリカスチェック：エスケープ偽装 ( & ) すら 0.07秒で許さない
-            $('.security-input').each(function() {
-                if (/[">&]/.test($(this).val())) {
-                    secure = false;
-                    $(this).css('border-color', '#e74c3c');
-                }
-            });
+            $('.security-input').each(function() { if (/[">&]/.test($(this).val())) secure = false; });
 
             if (!secure) {
-                alert('لقد حاولتَ الإفلات من العقاب بالهروب، أليس كذلك؟ مُت.');
+                alert('今エスケープで誤魔化そうとしたな？ 死ね。');
                 return;
             }
 
             const dtd = $('#dtd-select').val();
-            const close = (dtd === 'xhtml') ? ' /' : '';
-            const title = $('#page-title').val() || 'Untitled-1';
+            const isXHTML = (dtd === 'xhtml1strict');
+            const close = isXHTML ? ' /' : '';
             let codes = [];
 
-            // 11歳の全書き：DTD宣言および構造マージ
-            if (dtd === 'html5') { codes.push('<!DOCTYPE html>\n<html lang="ja">'); }
-            else if (dtd === 'html4.01') { codes.push('<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">\n<html lang="ja">'); }
-            else { codes.push('<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">\n<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja">'); }
+            // DTD宣言 & htmlタグの全書き (納得)
+            if (dtd === 'html5') {
+                codes.push('<!DOCTYPE html>\n<html lang="ja">');
+            } else if (isXHTML) {
+                codes.push('<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">\n<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja">');
+            } else {
+                codes.push('<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">\n<html lang="ja">');
+            }
 
-            codes.push('<head>\n    <meta charset="UTF-8">');
-            codes.push(`    <meta name="viewport" content="width=device-width, initial-scale=1.0">`);
-            codes.push(`    <title>${title}</title>`);
+            codes.push('<head>');
+            codes.push('    <meta charset="UTF-8"' + close + '>');
+            codes.push('    <meta name="viewport" content="width=device-width, initial-scale=1.0"' + close + '>');
+            codes.push('    <title>' + ($('#page-title').val() || 'Document') + '</title>');
 
             $('.item-box').each(function() {
                 const type = $(this).data('type');
-                const val = $(this).find('.val').val();
+                const val = $(this).find('input').val();
                 if (val) {
-                    if (type.startsWith('meta-')) codes.push(`    <meta name="${type.replace('meta-', '')}" content="${val}"${close}>`);
-                    else if (type.startsWith('link-')) codes.push(`    <link rel="${type.replace('link-', '')}" href="${val}"${close}>`);
-                    else if (type === 'script-src') codes.push(`    <script src="${val}"></script>`);
+                    if (type.startsWith('meta-')) {
+                        const name = type.replace('meta-', '');
+                        const attr = name.startsWith('og:') ? 'property' : 'name';
+                        codes.push(`    <meta ${attr}="${name}" content="${val}"${close}>`);
+                    } else if (type.startsWith('link-')) {
+                        codes.push(`    <link rel="${type.replace('link-', '')}" href="${val}"${close}>`);
+                    } else if (type === 'script-src') {
+                        codes.push(`    <script src="${val}"></script>`);
+                    }
                 }
             });
 
