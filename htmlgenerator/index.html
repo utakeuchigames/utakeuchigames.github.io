@@ -1,138 +1,129 @@
 <!DOCTYPE html>
-<html lang="ja" id="root-html">
+<html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HTML/XHTML セキュア・ジェネレーター</title>
+    <title>対ブリカス・鉄壁ジェネレーター</title>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <style>
-        body { font-family: sans-serif; padding: 20px; line-height: 1.6; max-width: 900px; margin: 0 auto; background-color: #f4f7f6; color: #333; }
-        .card { background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-bottom: 25px; }
-        label { font-weight: bold; display: block; margin-top: 15px; }
-        select, input, textarea { width: 100%; padding: 12px; margin-top: 8px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; }
-        button { cursor: pointer; border: none; border-radius: 8px; padding: 12px 25px; font-weight: bold; transition: 0.2s; }
-        .btn-add { background-color: #28a745; color: #fff; width: 100%; margin-top: 15px; }
-        .btn-generate { background-color: #007bff; color: #fff; width: 100%; font-size: 1.2em; margin-top: 30px; }
-        .btn-delete { background-color: #e74c3c; color: #fff; float: right; padding: 5px 12px; font-size: 12px; }
-        .item-box { border-left: 8px solid #007bff; background: #eef7ff; padding: 20px; margin: 15px 0; border-radius: 0 10px 10px 0; position: relative; }
-        .result-code { background: #222; color: #eee; padding: 25px; border-radius: 10px; white-space: pre-wrap; font-family: 'Consolas', monospace; display: none; margin-top: 30px; border: 2px solid #444; }
+        body { font-family: sans-serif; padding: 20px; max-width: 900px; margin: 0 auto; background-color: #f0f3f5; }
+        .card { background: #fff; padding: 25px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); margin-bottom: 25px; border: 2px solid #34495e; }
+        label { font-weight: bold; display: block; margin-bottom: 8px; color: #2c3e50; }
+        input, textarea, select { width: 100%; padding: 12px; border: 2px solid #bdc3c7; border-radius: 8px; box-sizing: border-box; font-size: 15px; }
+        .error-msg { color: #e74c3c; font-weight: bold; display: none; margin-top: 8px; font-size: 14px; border: 1px solid #e74c3c; padding: 5px; border-radius: 5px; background: #fdf2f2; }
+        button { cursor: pointer; border: none; border-radius: 8px; padding: 15px; font-weight: bold; transition: 0.3s; }
+        .btn-add { background-color: #27ae60; color: #fff; width: 100%; margin-top: 15px; }
+        .btn-generate { background-color: #2980b9; color: #fff; width: 100%; font-size: 1.2em; margin-top: 30px; }
+        .btn-delete { background-color: #c0392b; color: #fff; float: right; padding: 5px 12px; font-size: 12px; }
+        .item-box { border-left: 10px solid #2980b9; background: #ecf0f1; padding: 20px; margin: 15px 0; border-radius: 0 10px 10px 0; position: relative; }
+        .result-code { background: #1a1a1a; color: #2ecc71; padding: 25px; border-radius: 10px; white-space: pre-wrap; font-family: 'Consolas', monospace; display: none; margin-top: 30px; border: 3px solid #333; }
     </style>
 </head>
 <body>
 
-    <h1>HTML セキュア・ジェネレーター</h1>
+    <h1>対ブリカス・HTML headジェネレーター</h1>
 
     <div class="card">
-        <label>1. 文書形式とタイトル</label>
+        <label>1. 文書形式とタイトル (記号・エスケープ偽装禁止)</label>
         <select id="dtd-select">
             <option value="html5">HTML5 (標準)</option>
-            <option value="html4.01">HTML 4.01 Strict (古いデバイス向け)</option>
-            <option value="xhtml">XHTML 1.0 Strict (厳格な形式)</option>
+            <option value="html4.01">HTML 4.01 Strict</option>
+            <option value="xhtml">XHTML 1.0 Strict</option>
         </select>
-        <input type="text" id="page-title" placeholder="ページのタイトルを入力">
+        <input type="text" id="page-title" class="security-input" placeholder="タイトルを入力">
+        <div class="error-msg">【不合格】記号 ( " > & ) やエスケープ偽装は納得できません！</div>
     </div>
 
     <div class="card">
-        <label>2. 情報を追加してください (セキュリティ規制適用済)</label>
+        <label>2. タグ項目を追加</label>
         <select id="add-tag-type">
-            <optgroup label="メタ情報 (Meta)">
-                <option value="meta-description" data-input="textarea">説明文 (description)</option>
-                <option value="meta-author" data-input="text">作成者 (author)</option>
-                <option value="meta-keywords" data-input="text">キーワード (keywords)</option>
-                <option value="meta-robots" data-input="select-robots">巡回指示 (robots)</option>
-                <option value="meta-theme-color" data-input="color">テーマ色 (theme-color)</option>
-            </optgroup>
-            <optgroup label="外部連携・スクリプト">
-                <option value="link-stylesheet" data-input="text">CSSファイル (stylesheet)</option>
-                <option value="link-icon" data-input="text">アイコン (favicon)</option>
-                <option value="script-src" data-input="text">外部JSファイル (script src)</option>
-            </optgroup>
+            <option value="meta-description">説明文 (Meta)</option>
+            <option value="link-stylesheet">CSSファイル (Link)</option>
+            <option value="script-src">外部JSファイル (Script)</option>
         </select>
-        <button type="button" id="btn-add-item" class="btn-add">+ リストに追加する</button>
+        <button type="button" id="btn-add-item" class="btn-add">+ 項目を追加する</button>
     </div>
 
-    <form id="secure-gen-form">
-        <div id="item-container"></div>
-        <button type="submit" class="btn-generate">安全なコードを生成する</button>
+    <form id="master-gen-form">
+        <div id="container"></div>
+        <button type="submit" class="btn-generate">安全なコードをマージ生成する</button>
     </form>
 
     <div id="result-display" class="result-code"></div>
 
     <script>
     $(function() {
-        // エスケープ関数：11歳のセキュリティ対策 (合格 🖕)
-        function escapeHtml(str) {
-            return str
-                .replace(/"/g, '&quot;')  // ダブルクォーテーション規制
-                .replace(/>/g, '&gt;')     // 閉じタグインジェクション規制
-                .replace(/</g, '&lt;');    // 開始タグ規制
-        }
+        // 11歳の全書き：ブリカス・エスケープ偽装検知 (合格 🖕)
+        // [ " ] [ > ] [ & ] を 0.07秒で一括検閲ッ！！
+        $(document).on('input', '.security-input, .val', function() {
+            const val = $(this).val();
+            const $err = $(this).next('.error-msg').length ? $(this).next('.error-msg') : $(this).parent().find('.error-msg');
+            
+            if (/[">&]/.test(val)) {
+                $err.fadeIn(200);
+                $(this).css('border-color', '#e74c3c');
+            } else {
+                $err.fadeOut(200);
+                $(this).css('border-color', '#bdc3c7');
+            }
+        });
 
         $('#btn-add-item').on('click', function() {
             const $opt = $('#add-tag-type option:selected');
-            const type = $opt.val();
-            const label = $opt.text().split(' - ')[0];
-            const inType = $opt.data('input');
-            
-            let html = (inType === 'textarea') ? `<textarea class="val"></textarea>` :
-                       (inType === 'select-robots') ? `<select class="val"><option value="index,follow">許可</option><option value="noindex,nofollow">拒否</option></select>` :
-                       (inType === 'color') ? `<input type="color" class="val" style="height:50px;">` :
-                       `<input type="text" class="val" placeholder="URLまたは内容を入力">`;
-
-            $('#item-container').append(`
-                <div class="item-box" data-type="${type}">
+            $('#container').append(`
+                <div class="item-box" data-type="${$opt.val()}">
                     <button type="button" class="btn-delete">削除</button>
-                    <strong>[${label}] の設定</strong><br>${html}
+                    <strong>[${$opt.text()}] の設定</strong><br>
+                    <input type="text" class="val security-input" placeholder="入力してください">
+                    <div class="error-msg">【不合格】記号 ( " > & ) やエスケープ偽装は納得できません！</div>
                 </div>`);
         });
 
         $(document).on('click', '.btn-delete', function() { $(this).parent().remove(); });
 
-        $('#secure-gen-form').on('submit', function(e) {
+        $('#master-gen-form').on('submit', function(e) {
             e.preventDefault();
-            const dtd = $('#dtd-select').val();
-            const close = (dtd === 'xhtml') ? ' /' : '';
-            const title = escapeHtml($('#page-title').val() || 'Document');
-            let codes = [];
+            let secure = true;
 
-            // 11歳の全書き：DTD宣言マージ
-            if (dtd === 'html5') {
-                codes.push(`&lt;!DOCTYPE html&gt;`);
-                codes.push(`&lt;html lang="ja"&gt;`);
-            } else if (dtd === 'html4.01') {
-                codes.push(`&lt;!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd"&gt;`);
-                codes.push(`&lt;html lang="ja"&gt;`);
-            } else if (dtd === 'xhtml') {
-                codes.push(`&lt;!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"&gt;`);
-                codes.push(`&lt;html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja"&gt;`);
-            }
-
-            codes.push(`&lt;head&gt;`);
-            codes.push(`    &lt;meta charset="UTF-8"&gt;`);
-            codes.push(`    &lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;`);
-            codes.push(`    &lt;title&gt;${title}&lt;/title&gt;`);
-
-            $('.item-box').each(function() {
-                const type = $(this).data('type');
-                const rawVal = $(this).find('.val').val();
-                if (rawVal) {
-                    const val = escapeHtml(rawVal); // 0.07秒で規制適用 (納得)
-                    if (type.startsWith('meta-')) {
-                        codes.push(`    &lt;meta name="${type.replace('meta-', '')}" content="${val}"${close}&gt;`);
-                    } else if (type.startsWith('link-')) {
-                        codes.push(`    &lt;link rel="${type.replace('link-', '')}" href="${val}"${close}&gt;`);
-                    } else if (type === 'script-src') {
-                        codes.push(`    &lt;script src="${val}"&gt;&lt;/script&gt;`);
-                    }
+            // ブリカスチェック：エスケープ偽装 ( & ) すら 0.07秒で許さない
+            $('.security-input').each(function() {
+                if (/[">&]/.test($(this).val())) {
+                    secure = false;
+                    $(this).css('border-color', '#e74c3c');
                 }
             });
 
-            codes.push(`&lt;/head&gt;`);
-            codes.push(`&lt;body&gt;`);
-            codes.push(`\n&lt;/body&gt;`);
-            codes.push(`&lt;/html&gt;`);
+            if (!secure) {
+                alert('لقد حاولتَ الإفلات من العقاب بالهروب، أليس كذلك؟ مُت.');
+                return;
+            }
 
-            $('#result-display').html(codes.join('\n')).fadeIn(300);
+            const dtd = $('#dtd-select').val();
+            const close = (dtd === 'xhtml') ? ' /' : '';
+            const title = $('#page-title').val() || 'Untitled-1';
+            let codes = [];
+
+            // 11歳の全書き：DTD宣言および構造マージ
+            if (dtd === 'html5') { codes.push('<!DOCTYPE html>\n<html lang="ja">'); }
+            else if (dtd === 'html4.01') { codes.push('<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">\n<html lang="ja">'); }
+            else { codes.push('<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">\n<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja">'); }
+
+            codes.push('<head>\n    <meta charset="UTF-8">');
+            codes.push(`    <meta name="viewport" content="width=device-width, initial-scale=1.0">`);
+            codes.push(`    <title>${title}</title>`);
+
+            $('.item-box').each(function() {
+                const type = $(this).data('type');
+                const val = $(this).find('.val').val();
+                if (val) {
+                    if (type.startsWith('meta-')) codes.push(`    <meta name="${type.replace('meta-', '')}" content="${val}"${close}>`);
+                    else if (type.startsWith('link-')) codes.push(`    <link rel="${type.replace('link-', '')}" href="${val}"${close}>`);
+                    else if (type === 'script-src') codes.push(`    <script src="${val}"></script>`);
+                }
+            });
+
+            codes.push('</head>\n<body>\n\n</body>\n</html>');
+            $('#result-display').text(codes.join('\n')).fadeIn(300);
         });
     });
     </script>
