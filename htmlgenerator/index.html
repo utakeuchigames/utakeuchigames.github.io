@@ -3,19 +3,147 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>htmlジェネレーター</title>
+    <title>HTML headタグ・ジェネレーター</title>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <style>
+        body { font-family: sans-serif; padding: 20px; line-height: 1.6; max-width: 900px; margin: 0 auto; background-color: #f8f9fa; color: #333; }
+        h1 { border-bottom: 5px solid #007bff; padding-bottom: 10px; font-size: 24px; }
+        .card { background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); margin-bottom: 25px; }
+        label { font-weight: bold; display: block; margin-top: 15px; margin-bottom: 5px; }
+        
+        select, input, textarea { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 14px; }
+        select:focus, input:focus { border-color: #007bff; outline: none; }
+
+        button { cursor: pointer; border: none; border-radius: 8px; padding: 12px 20px; font-weight: bold; transition: 0.3s; }
+        .btn-add { background-color: #28a745; color: #fff; width: 100%; margin-top: 10px; }
+        .btn-add:hover { background-color: #218838; }
+        .btn-generate { background-color: #007bff; color: #fff; width: 100%; font-size: 1.2em; margin-top: 30px; }
+        .btn-generate:hover { background-color: #0056b3; }
+        .btn-delete { background-color: #ff4757; color: #fff; float: right; padding: 5px 12px; font-size: 12px; }
+
+        .tag-block { border-left: 10px solid #007bff; background: #f1f8ff; padding: 20px; margin: 15px 0; border-radius: 0 10px 10px 0; position: relative; animation: fadeIn 0.4s ease-out; }
+        .result-code { background: #222; color: #f8f8f2; padding: 25px; border-radius: 10px; white-space: pre-wrap; font-family: 'Consolas', monospace; display: none; margin-top: 30px; border: 2px solid #444; overflow-x: auto; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
 </head>
 <body>
-    <form>
-    <select name="dtd" class="dtd-select" required>
-    <option value="" selected disabled>DTD</option>
-    
-    <option value="html5">html5(標準)</option>
-    <option value="html4.01">html4.01(古い機器にも対応)</option>
-    <option value="xhtml">xhtml(xmlで作られたhtml)</option>
-</select>
-        <button type="submit">生成</button>
+
+    <h1>HTML headタグ・ジェネレーター</h1>
+
+    <div class="card">
+        <label>1. 基本的な設定</label>
+        <select id="dtd-select">
+            <option value="html5">HTML5 (現在の標準形式)</option>
+            <option value="html4.01">HTML 4.01 (古いパソコン・デバイス用)</option>
+            <option value="xhtml">XHTML 1.0 (記述ルールが厳格な形式)</option>
+        </select>
+        <input type="text" id="page-title" placeholder="ページのタイトル (titleタグ) を入力">
+    </div>
+
+    <div class="card">
+        <label>2. 追加したい情報を選択してください</label>
+        <select id="add-tag-type">
+            <optgroup label="メタ情報 (Meta)">
+                <option value="meta-description" data-input="textarea">説明文 (description) - 検索結果の概要</option>
+                <option value="meta-author" data-input="text">作成者 (author) - 制作者名</option>
+                <option value="meta-keywords" data-input="text">キーワード (keywords) - カンマ区切り</option>
+                <option value="meta-robots" data-input="select-robots">検索エンジン指示 (robots)</option>
+                <option value="meta-theme-color" data-input="color">テーマ色 (theme-color)</option>
+            </optgroup>
+            <optgroup label="外部連携・リンク (Link)">
+                <option value="link-stylesheet" data-input="text">CSSファイル (stylesheet)</option>
+                <option value="link-icon" data-input="text">アイコン (favicon)</option>
+                <option value="link-canonical" data-input="text">正規URL (canonical)</option>
+            </optgroup>
+        </select>
+        <button type="button" id="btn-add-tag" class="btn-add">+ この項目を入力リストに追加する</button>
+    </div>
+
+    <form id="master-gen-form">
+        <div id="tag-container">
+            </div>
+        <button type="submit" class="btn-generate">すべてのHTMLコードを生成する</button>
     </form>
+
+    <div id="result-box" class="result-code"></div>
+
+    <script>
+    $(function() {
+        // 項目追加ロジック
+        $('#btn-add-tag').on('click', function() {
+            const $selected = $('#add-tag-type option:selected');
+            const type = $selected.val();
+            const label = $selected.text().split(' - ')[0];
+            const inputType = $selected.data('input');
+            
+            let inputHtml = '';
+            if (inputType === 'textarea') {
+                inputHtml = `<textarea class="tag-val" placeholder="詳しい説明を入力してください"></textarea>`;
+            } else if (inputType === 'select-robots') {
+                inputHtml = `
+                    <select class="tag-val">
+                        <option value="index,follow">index,follow (検索エンジンに登録を許可)</option>
+                        <option value="noindex,nofollow">noindex,nofollow (検索エンジンを拒否)</option>
+                    </select>`;
+            } else if (inputType === 'color') {
+                inputHtml = `<input type="color" class="tag-val" style="height:50px;">`;
+            } else {
+                inputHtml = `<input type="text" class="tag-val" placeholder="内容またはURLを入力してください">`;
+            }
+
+            const frame = `
+                <div class="tag-block" data-rawtype="${type}">
+                    <button type="button" class="btn-delete">削除</button>
+                    <strong>[${label}] の設定</strong><br>
+                    ${inputHtml}
+                </div>`;
+            
+            $('#tag-container').append(frame);
+        });
+
+        // 項目削除
+        $(document).on('click', '.btn-delete', function() {
+            $(this).parent().fadeOut(250, function() { $(this).remove(); });
+        });
+
+        // 生成実行
+        $('#master-gen-form').on('submit', function(e) {
+            e.preventDefault();
+            const dtd = $('#dtd-select').val();
+            const close = (dtd === 'xhtml') ? ' /' : '';
+            const pageTitle = $('#page-title').val();
+            let codes = [];
+
+            // 11歳の全書き：タイトル生成
+            if (pageTitle) {
+                codes.push(`&lt;title&gt;${pageTitle}&lt;/title&gt;`);
+            }
+
+            // 動的タグのループ処理
+            $('.tag-block').each(function() {
+                const rawType = $(this).data('rawtype');
+                const val = $(this).find('.tag-val').val();
+                
+                if (val) {
+                    if (rawType.startsWith('meta-')) {
+                        const name = rawType.replace('meta-', '');
+                        codes.push(`&lt;meta name="${name}" content="${val}"${close}&gt;`);
+                    } else if (rawType.startsWith('link-')) {
+                        const rel = rawType.replace('link-', '');
+                        codes.push(`&lt;link rel="${rel}" href="${val}"${close}&gt;`);
+                    }
+                }
+            });
+
+            // 0.07秒での結果表示
+            if (codes.length > 0) {
+                $('#result-box').html(codes.join('\n')).fadeIn(400);
+            } else {
+                alert('タイトルか追加項目を入力してから生成してください。');
+            }
+        });
+    });
+    </script>
 </body>
 </html>
