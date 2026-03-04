@@ -106,10 +106,10 @@
             const close = (dtd === 'xhtml1strict') ? ' /' : '';
             let codes = [];
 
-            if (dtd === 'html5') codes.push('<!DOCTYPE html>\n<html lang="ja">\n<head>\n    <meta charset="UTF-8"' + close + '>');
+            if (dtd === 'html5') codes.push('<!DOCTYPE html>\n<html lang="ja">\n<head>\n    <meta charset="UTF-8"' + close + '>\n    <meta name="viewport" content="width=device-width, initial-scale=1.0" ' + close + '>');
             else if(dtd === 'xhtml1strict') codes.push('<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">\n<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja">\n<head>\n    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8 />');
             else codes.push('<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">\n<html lang="ja">\n<head>\n    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">');
-            codes.push('    <meta name="viewport" content="width=device-width, initial-scale=1.0" ' + close + '>\n    <title>' + secureEscape($('#page-title').val() || 'Document') + '</title>');
+            codes.push('    <title>' + secureEscape($('#page-title').val() || 'Document') + '</title>');
 
             $('.item-box').each(function() {
                 const type = $(this).data('type');
