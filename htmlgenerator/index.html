@@ -123,7 +123,7 @@
                         let rel = type.replace('link-', '');
                         codes.push(`    <link rel="${rel}" href="${val}"${close}>`);
                     } else if (type === 'script-src') {
-                        codes.push(`    <script src="${val}"></script>`);
+                        codes.push(`    <script src="${val}"></script&gt;`);
                     }
                 }
             });
