@@ -81,6 +81,7 @@
 
     <button class="copy-button" onclick="copy()">
         <img src="copy.svg" height="20px" width="20px">
+        <span id="copy-button"></span>
     </button>
     
 </div>
@@ -152,7 +153,7 @@
         function copy(){
             let context = $('#result-display').text;
             navigator.clipboard.writeText(context);
-            
+            $('#copy-button').text("copied!").fadeIn(300);
         }
     });
     </script>
