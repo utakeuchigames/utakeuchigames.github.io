@@ -150,12 +150,16 @@
             codes.push('</head>\n<body>\n\n</body>\n</html>');
             $('#result-display').text(codes.join('\n')).fadeIn(300);
         });
-        function copy(){
-            let context = $('#result-display').text;
-            navigator.clipboard.writeText(context);
-            $('#copy-button').text("copied!").fadeIn(300);
-        }
+        // windowに直接マージして、onclickから呼べるようにする（合格 🖕）
+window.copy = function() {
+    let context = $('#result-display').text(); // ()を追加！！
+    navigator.clipboard.writeText(context).then(() => {
+        // 文字を出すspanを狙い撃ち！！
+        $('#copy-button').text(" copied!").fadeIn(300).delay(1000).fadeOut(300);
     });
+};
+    });
+        
     </script>
 </body>
 </html>
