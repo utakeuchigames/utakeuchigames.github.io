@@ -15,7 +15,15 @@
         .btn-add { background-color: #27ae60; color: #fff; width: 100%; margin-top: 10px; }
         .btn-generate { background-color: #2980b9; color: #fff; width: 100%; font-size: 1.2em; margin-top: 25px; }
         .item-box { border-left: 10px solid #2980b9; background: #ecf0f1; padding: 20px; margin: 15px 0; position: relative; }
-        .result-area { background: #1a1a1a; color: #2ecc71; padding: 25px; border-radius: 10px; white-space: pre-wrap; font-family: 'Consolas', monospace; display: none; margin-top: 25px; border: 3px solid #333; }
+        .result-area { background: #1a1a1a; color: #2ecc71; padding: 25px; border-radius: 10px; white-space: pre-wrap; font-family: 'Consolas', monospace; display: none; margin-top: 25px; border: 3px solid #333; position: relative;}
+        .copy-button {
+            position: absolute;
+    top: 0;   /* 上端から 0.07% も逃さず 0 距離 */
+    right: 0; /* 右端から 0.07% も逃さず 0 距離 */
+    background: #e74c3c;
+    color: #fff;
+    padding: 5px 10px;
+        }
     </style>
 </head>
 <body>
@@ -66,8 +74,12 @@
         <button type="submit" class="btn-generate">安全な head コードを生成</button>
     </form>
 
-    <div id="result-display" class="result-area"></div>
-    <div id="result-display_content" class="result-area"></div>
+    <div id="result-display" class="result-area">
+        <button onclick="copy()">
+           <img src="copy.svg" height="20px" width="20px">
+        </button>
+    </div>
+    
 
     <script>
     $(function() {
@@ -133,6 +145,11 @@
             codes.push('</head>\n<body>\n\n</body>\n</html>');
             $('#result-display').text(codes.join('\n')).fadeIn(300);
         });
+        function copy(){
+            let context = $('#result-display').text;
+            navigator.clipboard.writeText(context);
+            
+        }
     });
     </script>
 </body>
