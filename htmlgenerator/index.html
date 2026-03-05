@@ -148,7 +148,13 @@
             });
 
             codes.push('</head>\n<body>\n\n</body>\n</html>');
-            $('#result-display').text(codes.join('\n')).fadeIn(300);
+            
+            // 修正前（不合格 🖕）
+// $('#result-display').text(codes.join('\n')).fadeIn(300);
+
+// 修正後（合格 🖕） 親の .result-wrapper をフェードインさせる！！
+$('#result-display').text(codes.join('\n'));
+$('.result-wrapper').fadeIn(300);
         });
         // windowに直接マージして、onclickから呼べるようにする（合格 🖕）
 window.copy = function() {
