@@ -20,9 +20,8 @@
             position: absolute;
     top: 0;   /* 上端から 0.07% も逃さず 0 距離 */
     right: 0; /* 右端から 0.07% も逃さず 0 距離 */
-    background: #e74c3c;
+    background: #1a1a1a;
     color: #fff;
-    padding: 5px 10px;
         }
     </style>
 </head>
@@ -153,7 +152,7 @@
 // $('#result-display').text(codes.join('\n')).fadeIn(300);
 
 // 修正後（合格 🖕） 親の .result-wrapper をフェードインさせる！！
-$('#result-display').text(codes.join('\n'));
+$('#result-display').text(codes.join('\n')).fadeIn(300);
 $('.result-wrapper').fadeIn(300);
         });
         // windowに直接マージして、onclickから呼べるようにする（合格 🖕）
