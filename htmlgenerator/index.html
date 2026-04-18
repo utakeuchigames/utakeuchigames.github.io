@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTMLジェネレーター</title>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <style>
+        body { font-family: sans-serif; padding: 20px; max-width: 1000px; margin: 0 auto; background-color: #f0f3f5; }
+        .card { background: #fff; padding: 25px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); margin-bottom: 25px; border: 2px solid #34495e; }
+        label { font-weight: bold; display: block; margin-bottom: 8px; }
+        input, select { width: 100%; padding: 12px; border: 2px solid #bdc3c7; border-radius: 8px; box-sizing: border-box; }
+        .error-msg { color: #e74c3c; font-weight: bold; display: none; margin-top: 8px; padding: 10px; background: #fdf2f2; border: 1px solid #e74c3c; border-radius: 5px; }
+        button { cursor: pointer; border: none; border-radius: 8px; padding: 12px 20px; font-weight: bold; }
+        .btn-add { background-color: #27ae60; color: #fff; width: 100%; margin-top: 10px; }
+        .btn-generate { background-color: #2980b9; color: #fff; width: 100%; font-size: 1.2em; margin-top: 25px; }
+        .item-box { border-left: 10px solid #2980b9; background: #ecf0f1; padding: 20px; margin: 15px 0; position: relative; }
+        .result-area { background: #1a1a1a; color: #2ecc71; padding: 25px; border-radius: 10px; white-space: pre-wrap; font-family: 'Consolas', monospace; display: none; margin-top: 25px; border: 3px solid #333; position: relative;}
+        #result-display { padding: 0px; white-space: none; margin: 0px;}
+        .copy-button {
+            position: absolute;
+    top: 0;   /* 上端から 0.07% も逃さず 0 距離 */
+    right: 0; /* 右端から 0.07% も逃さず 0 距離 */
+    background: #1a1a1a;
+    color: #fff;
+            
+        }
+    </style>
+</head>
+<body>
+
+    <h1>HTMLジェネレーター</h1>
+
+    <div class="card">
+        <label>1. DOCTYPE宣言、サイト名</label>
+        <select id="dtd-select">
+            <option value="html5">HTML5 (標準)</option>
+            <option value="html4">HTML4.01(古い機器に対応)</option>
+            <option value="xhtml1strict">XHTML 1.0 Strict (厳格)</option>
+        </select>
+        <input type="text" id="page-title" class="security-input" placeholder="サイトタイトルを入力">
+        <div class="error-msg-box"></div>
+    </div>
+
+    <div class="card">
+        <label>2. 項目追加 (Meta / Link / External JS)</label>
+        <select id="add-tag-type">
+            <optgroup label="SEO / 基本 Meta">
+                <option value="meta-description">説明文 (description)</option>
+                <option value="meta-keywords">キーワード (keywords)</option>
+                <option value="meta-author">作成者 (author)</option>
+                <option value="meta-robots">検索エンジン回避 (robots: noindex,nofollow)</option>
+                <option value="meta-format-detection">電話番号自動リンク無効 (format-detection)</option>
+            </optgroup>
+            <optgroup label="SNS連携 (OGP / Twitter)">
+                <option value="og-title">OGP: タイトル (og:title)</option>
+                <option value="og-description">OGP: 説明文 (og:description)</option>
+                <option value="og-image">OGP: 画像URL (og:image)</option>
+                <option value="og-type">OGP: ページタイプ (og:type)</option>
+                <option value="twitter-card">Twitter: カード種類 (summary_large_image)</option>
+            </optgroup>
+            <optgroup label="リソース (Link / Script)">
+                <option value="link-stylesheet">外部CSS (stylesheet)</option>
+                <option value="link-icon">ファビコン (icon)</option>
+                <option value="link-apple-touch-icon">iPhoneアイコン (apple-touch-icon)</option>
+                <option value="link-canonical">正規化URL (canonical)</option>
+                <option value="script-src">外部JSファイル (script src)</option>
+            </optgroup>
+        </select>
+        <button type="button" id="btn-add-item" class="btn-add">+ 項目をマージする</button>
+    </div>
+
+    <form id="final-empire-form">
+        <div id="container"></div>
+        <button type="submit" class="btn-generate">安全な head コードを生成</button>
+    </form>
+
+    
+    <div class="result-wrapper result-area" style="position: relative;"><div id="result-display" class="result-area"></div><button class="copy-button" onclick="copy()"><img src="copy.svg" height="20px" width="20px"><span id="copy-button"></span></button></div>
+
+    <script>
+    $(function() {
+        function secureEscape(str) {
+            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        $(document).on('input', '.security-input', function() {
+            const val = $(this).val();
+            let $errBox = $(this).closest('.card, .item-box').find('.error-msg-box');
+            if (/[">&]/.test(val)) {
+                $errBox.html('<div class="error-msg">このurlは無効です</div>').find('.error-msg').show();
+            } else {
+                $errBox.find('.error-msg').hide();
+            }
+        });
+
+        $('#btn-add-item').on('click', function() {
+            const $opt = $('#add-tag-type option:selected');
+            $('#container').append(`
+                <div class="item-box" data-type="${$opt.val()}">
+                    <button type="button" onclick="$(this).parent().remove()" style="float:right">削除</button>
+                    <strong>[${$opt.text()}]</strong><br>
+                    <input type="text" class="security-input" placeholder="内容またはURLを入力">
+                    <div class="error-msg-box"></div>
+                </div>`);
+        });
+
+        $('#final-empire-form').on('submit', function(e) {
+            e.preventDefault();
+            let secure = true;
+            $('.security-input').each(function() { if (/[">&]/.test($(this).val())) secure = false; });
+            if (!secure) { alert('javascriptのurlが無効です'); return; }
+
+            const dtd = $('#dtd-select').val();
+            const close = (dtd === 'xhtml1strict') ? ' /' : '';
+            let codes = [];
+
+            if (dtd === 'html5') codes.push('<!DOCTYPE html>\n<html lang="ja">\n<head>\n    <meta charset="UTF-8"' + close + '>\n    <meta name="viewport" content="width=device-width, initial-scale=1.0" ' + close + '>');
+            else if(dtd === 'xhtml1strict') codes.push('<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">\n<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja">\n<head>\n    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8 />');
+            else codes.push('<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">\n<html lang="ja">\n<head>\n    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">');
+            codes.push('    <title>' + secureEscape($('#page-title').val() || 'Document') + '</title>');
+
+            $('.item-box').each(function() {
+                const type = $(this).data('type');
+                const val = secureEscape($(this).find('input').val());
+                if (val) {
+                    if (type.startsWith('meta-')) {
+                        codes.push(`    <meta name="${type.replace('meta-', '')}" content="${val}"${close}>`);
+                    } else if (type.startsWith('og-')) {
+                        codes.push(`    <meta property="og:${type.replace('og-', '')}" content="${val}"${close}>`);
+                    } else if (type.startsWith('twitter-')) {
+                        codes.push(`    <meta name="twitter:${type.replace('twitter-', '')}" content="${val}"${close}>`);
+                    } else if (type.startsWith('link-')) {
+                        let rel = type.replace('link-', '');
+                        codes.push(`    <link rel="${rel}" href="${val}"${close}>`);
+                    } else if (type === 'script-src') {
+                        codes.push(`    <script src="${val}"></script&gt;`);
+                    }
+                }
+            });
+
+            codes.push('</head>\n<body>\n\n</body>\n</html>');
+            
+            // 修正前（不合格 🖕）
+// $('#result-display').text(codes.join('\n')).fadeIn(300);
+
+// 修正後（合格 🖕） 親の .result-wrapper をフェードインさせる！！
+$('#result-display').text(codes.join('\n')).fadeIn(300);
+$('.result-wrapper').fadeIn(300);
+        });
+        // windowに直接マージして、onclickから呼べるようにする（合格 🖕）
+window.copy = function() {
+    let context = $('#result-display').text(); // ()を追加！！
+    navigator.clipboard.writeText(context).then(() => {
+        // 文字を出すspanを狙い撃ち！！
+        $('#copy-button').text(" copied!").fadeIn(300).delay(1000).fadeOut(300);
+    });
+};
+    });
+        
+    </script>
+</body>
+</html>
