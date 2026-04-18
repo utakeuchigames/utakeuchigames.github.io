@@ -81,7 +81,10 @@
 <body>
 
     <h1>HTMLジェネレーター</h1>
-
+    <label>正直モード</label><div class="toggle_button">
+  <input id="toggle" class="toggle_input" type="checkbox" />
+  <label for="toggle" class="toggle_label" />
+</div>
     <div class="card">
         <label>1. DOCTYPE宣言、サイト名</label>
         <select id="dtd-select">
@@ -138,6 +141,14 @@
         function secureEscape(str) {
             return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
         }
+
+        $('#toggle').on('checked', function() {
+            $('#html5').text('HTML Liveing standard (標準)');
+        });
+
+        $('#toggle').off('checked', function() {
+            $('#html5').text('HTML5 (標準)');
+        });
 
         $(document).on('input', '.security-input', function() {
             const val = $(this).val();
