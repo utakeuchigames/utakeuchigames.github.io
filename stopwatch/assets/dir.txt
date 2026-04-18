@@ -1,1 +1,1 @@
-__DIR__ === /stopwatch/assets/
+__DIR__ === /test/
