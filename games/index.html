@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>Notemaster Rhythm Game</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        #gameCanvas {
+            border: 2px solid #3498db;
+            display: block;
+            margin: 20px auto;
+            background-color: #ecf0f1;
+        }
+    </style>
+</head>
+<body>
+    
+    <div id="loaderArea">
+        <h1>譜面パッケージ (.nmpack) ローダー</h1>
+        <div>
+            <label for="packageFileInput">パッケージファイル (.nmpack) を選択:</label>
+            <input type="file" id="packageFileInput" accept=".nmpack" onchange="loadScorePackage(event)">
+        </div>
+    </div>
+    
+    <div id="gameArea" style="display: none;">
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+    </div>
+
+    <hr>
+    <h2>現在のステータスと詳細</h2>
+    <div id="status">ファイルをアップロードしてください...</div>
+    <div id="scoreDataOutput" style="white-space: pre-wrap;"></div>
+
+    <script src="game-app.js?v=c"></script>
+</body>
+</html>

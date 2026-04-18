@@ -1,0 +1,234 @@
+{
+    "song_title": "Enhanced Editor Score",
+    "bpm": 210,
+    "editor": "notemasterv.1.0",
+    "notes": [
+        {
+            "time": 1.4286,
+            "lane": 1,
+            "type": 1,
+            "duration": 1.8571
+        },
+        {
+            "time": 1.4286,
+            "lane": 4,
+            "type": 1,
+            "duration": 1.8571
+        },
+        {
+            "time": 1.4286,
+            "lane": 6,
+            "type": 1,
+            "duration": 1.8571
+        },
+        {
+            "time": 3.4286,
+            "lane": 1,
+            "type": 0
+        },
+        {
+            "time": 3.4286,
+            "lane": 4,
+            "type": 0
+        },
+        {
+            "time": 3.4286,
+            "lane": 6,
+            "type": 0
+        },
+        {
+            "time": 3.7143,
+            "lane": 2,
+            "type": 1,
+            "duration": 1.8571
+        },
+        {
+            "time": 3.7143,
+            "lane": 4,
+            "type": 1,
+            "duration": 1.8571
+        },
+        {
+            "time": 3.7143,
+            "lane": 5,
+            "type": 1,
+            "duration": 1.8571
+        },
+        {
+            "time": 5.7143,
+            "lane": 2,
+            "type": 0
+        },
+        {
+            "time": 5.7143,
+            "lane": 4,
+            "type": 0
+        },
+        {
+            "time": 5.7143,
+            "lane": 5,
+            "type": 0
+        },
+        {
+            "time": 6,
+            "lane": 2,
+            "type": 1,
+            "duration": 1.8571
+        },
+        {
+            "time": 6,
+            "lane": 5,
+            "type": 1,
+            "duration": 1.8571
+        },
+        {
+            "time": 6,
+            "lane": 6,
+            "type": 1,
+            "duration": 1.8571
+        },
+        {
+            "time": 8,
+            "lane": 2,
+            "type": 0
+        },
+        {
+            "time": 8,
+            "lane": 5,
+            "type": 0
+        },
+        {
+            "time": 8,
+            "lane": 6,
+            "type": 0
+        },
+        {
+            "time": 8.2857,
+            "lane": 2,
+            "type": 1,
+            "duration": 2.1429
+        },
+        {
+            "time": 8.2857,
+            "lane": 4,
+            "type": 1,
+            "duration": 1
+        },
+        {
+            "time": 8.2857,
+            "lane": 5,
+            "type": 1,
+            "duration": 1
+        },
+        {
+            "time": 9.4286,
+            "lane": 6,
+            "type": 1,
+            "duration": 0.4286
+        },
+        {
+            "time": 9.4286,
+            "lane": 5,
+            "type": 1,
+            "duration": 0.4286
+        },
+        {
+            "time": 10,
+            "lane": 4,
+            "type": 1,
+            "duration": 0.4286
+        },
+        {
+            "time": 10,
+            "lane": 5,
+            "type": 1,
+            "duration": 0.4286
+        },
+        {
+            "time": 10.5714,
+            "lane": 1,
+            "type": 0
+        },
+        {
+            "time": 10.8571,
+            "lane": 3,
+            "type": 0
+        },
+        {
+            "time": 11.1429,
+            "lane": 1,
+            "type": 0
+        },
+        {
+            "time": 11.4286,
+            "lane": 2,
+            "type": 0
+        },
+        {
+            "time": 11.5714,
+            "lane": 1,
+            "type": 0
+        },
+        {
+            "time": 11.8571,
+            "lane": 2,
+            "type": 0
+        },
+        {
+            "time": 12,
+            "lane": 3,
+            "type": 0
+        },
+        {
+            "time": 12.2857,
+            "lane": 1,
+            "type": 0
+        },
+        {
+            "time": 12.5714,
+            "lane": 2,
+            "type": 0
+        },
+        {
+            "time": 12.8571,
+            "lane": 1,
+            "type": 0
+        },
+        {
+            "time": 13.1429,
+            "lane": 3,
+            "type": 0
+        },
+        {
+            "time": 13.4286,
+            "lane": 1,
+            "type": 0
+        },
+        {
+            "time": 13.7143,
+            "lane": 2,
+            "type": 0
+        },
+        {
+            "time": 13.8571,
+            "lane": 1,
+            "type": 0
+        },
+        {
+            "time": 14.1429,
+            "lane": 2,
+            "type": 0
+        },
+        {
+            "time": 14.2857,
+            "lane": 3,
+            "type": 0
+        },
+        {
+            "time": 14.5714,
+            "lane": 1,
+            "type": 1,
+            "duration": 0.5714
+        }
+    ]
+}
