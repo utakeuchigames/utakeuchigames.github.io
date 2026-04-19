@@ -85,11 +85,8 @@
             border-radius: 8px;
         }
 
-        .input-group {
-            margin-bottom: 15px;
-            display: flex;
-            gap: 10px;
-            align-items: flex-end;
+        .property-input-group {
+            margin-bottom: 20px;
         }
 
         label {
@@ -97,11 +94,11 @@
             margin-bottom: 8px;
             color: #555;
             font-weight: 600;
-            flex: 1;
         }
 
         .input-wrapper {
-            flex: 1;
+            position: relative;
+            margin-bottom: 10px;
         }
 
         input[type="text"],
@@ -124,9 +121,67 @@
             box-shadow: 0 0 5px rgba(102, 126, 234, 0.3);
         }
 
-        textarea {
-            min-height: 100px;
-            resize: vertical;
+        .autocomplete-list {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #ddd;
+            border-top: none;
+            border-radius: 0 0 5px 5px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+        }
+
+        .autocomplete-list.active {
+            display: block;
+        }
+
+        .autocomplete-item {
+            padding: 10px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+            transition: background 0.2s;
+        }
+
+        .autocomplete-item:hover {
+            background: #e7f0ff;
+        }
+
+        .autocomplete-item-name {
+            font-weight: 600;
+            color: #667eea;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        .autocomplete-item-desc {
+            font-size: 0.85em;
+            color: #777;
+            margin-top: 3px;
+        }
+
+        .property-description {
+            background: #e3f2fd;
+            border-left: 4px solid #2196F3;
+            padding: 12px 15px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            font-size: 0.95em;
+            color: #1565c0;
+            display: none;
+        }
+
+        .property-description.active {
+            display: block;
+        }
+
+        .property-description strong {
+            display: block;
+            margin-bottom: 5px;
         }
 
         .btn {
@@ -154,15 +209,6 @@
             box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
         }
 
-        .btn-secondary {
-            background: #6c757d;
-            color: white;
-        }
-
-        .btn-secondary:hover {
-            background: #5a6268;
-        }
-
         .btn-danger {
             background: #dc3545;
             color: white;
@@ -170,15 +216,6 @@
 
         .btn-danger:hover {
             background: #c82333;
-        }
-
-        .btn-success {
-            background: #28a745;
-            color: white;
-        }
-
-        .btn-success:hover {
-            background: #218838;
         }
 
         .button-group {
@@ -197,7 +234,7 @@
             border-radius: 5px;
             max-height: 300px;
             overflow-y: auto;
-            margin-bottom: 15px;
+            margin-top: 15px;
         }
 
         .css-rule-item {
@@ -279,13 +316,10 @@
             padding: 40px 20px;
         }
 
-        .info-box {
-            background: #e3f2fd;
-            border-left: 4px solid #2196F3;
-            padding: 12px 15px;
-            border-radius: 4px;
-            margin-bottom: 15px;
-            font-size: 0.95em;
+        .empty-list {
+            padding: 20px;
+            text-align: center;
+            color: #999;
         }
 
         @media (max-width: 1024px) {
@@ -301,11 +335,6 @@
 
             h1 {
                 font-size: 1.8em;
-            }
-
-            .input-group {
-                flex-direction: column;
-                align-items: flex-start;
             }
 
             .button-group {
@@ -326,38 +355,28 @@
 
             <div class="editor-section">
                 <h2>CSS設定</h2>
-                <div class="info-box">
-                💡 プロパティと値を入力して「追加」をクリック、または下のリストから編集・削除できます。
-                </div>
                 
-                <div id="editor-container">
-                    <div class="input-group">
-                        <div class="input-wrapper">
-                            <label>プロパティ名:</label>
-                            <input type="text" id="property-input" placeholder="例: color, background-color, padding">
-                        </div>
-                        <div class="input-wrapper">
-                            <label>値:</label>
-                            <input type="text" id="value-input" placeholder="例: #333, 10px, 1.5">
-                        </div>
-                        <button class="btn btn-primary btn-small" id="add-btn">追加</button>
+                <div class="property-input-group">
+                    <label>プロパティを選択:</label>
+                    <div class="input-wrapper">
+                        <input type="text" id="property-input" placeholder="プロパティ名を入力（例：color, background-color）" autocomplete="off">
+                        <div class="autocomplete-list" id="autocomplete-list"></div>
                     </div>
-
-                    <div class="input-group">
-                        <label>または直接CSS編集:</label>
-                    </div>
-                    <textarea id="custom-css" placeholder="直接CSSを記述：&#10;color: #333;&#10;background-color: white;&#10;padding: 20px;"></textarea>
-
-                    <div class="button-group">
-                        <button class="btn btn-success" id="update-custom-btn">カスタムCSS更新</button>
-                        <button class="btn btn-danger" id="clear-btn">すべてクリア</button>
-                    </div>
-
-                    <h3 style="margin-top: 20px; margin-bottom: 10px; font-size: 1.1em; color: #555;">追加されたプロパティ:</h3>
-                    <div class="css-rules-list" id="css-rules-list">
-                        <div class="css-rule-item" style="color: #999;">プロパティはまだ追加されていません</div>
-                    </div>
+                    <div class="property-description" id="property-description"></div>
                 </div>
+
+                <div class="property-input-group">
+                    <label>値:</label>
+                    <input type="text" id="value-input" placeholder="値を入力（例：#333, 10px, 1.5）">
+                    <button class="btn btn-primary" id="add-btn" style="width: 100%; margin-top: 10px;">追加</button>
+                </div>
+
+                <h3 style="margin-top: 20px; margin-bottom: 10px; font-size: 1.1em; color: #555;">追加されたプロパティ:</h3>
+                <div class="css-rules-list" id="css-rules-list">
+                    <div class="empty-list">プロパティはまだ追加されていません</div>
+                </div>
+
+                <button class="btn btn-danger" id="clear-btn" style="width: 100%; margin-top: 15px;">すべてクリア</button>
             </div>
         </div>
 
@@ -367,13 +386,13 @@
             <div class="output">
                 <h3 style="margin-bottom: 10px; font-size: 1.1em;">生成されたCSS:</h3>
                 <pre id="css-output"><code>/* CSSがここに表示されます */</code></pre>
-                <button id="copy-btn" class="btn btn-secondary copy-btn">コピー</button>
+                <button id="copy-btn" class="btn btn-primary copy-btn">コピー</button>
             </div>
 
             <div class="preview-box">
                 <h3 style="margin-bottom: 10px; font-size: 1.1em;">プレビュー:</h3>
                 <div id="preview" class="preview-content">
-                    <div class="loading">プロパティを追加するとプレビューが表示されます</div>
+                    <div class="loading">テンプレートを選択してください</div>
                 </div>
             </div>
         </div>
@@ -381,6 +400,43 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // CSSプロパティの辞書（説明付き）
+            const cssProperties = {
+                'color': { desc: 'テキスト色', example: '#333, rgb(51,51,51), blue' },
+                'background-color': { desc: '背景色', example: '#fff, rgba(255,255,255,0.5)' },
+                'background': { desc: '背景全般（色、画像など）', example: '#fff, url(image.jpg), linear-gradient(...)' },
+                'font-size': { desc: 'フォントサイズ', example: '16px, 1.5em, 100%' },
+                'font-weight': { desc: 'フォントの太さ', example: '400, 700, bold, normal' },
+                'font-family': { desc: 'フォント種類', example: 'Arial, "Times New Roman", serif' },
+                'padding': { desc: '内側の余白（上右下左）', example: '10px, 10px 20px, 10px 20px 10px 20px' },
+                'margin': { desc: '外側の余白（上右下左）', example: '10px, 10px 20px, 0 auto' },
+                'border': { desc: 'ボーダー（幅 スタイル 色）', example: '1px solid #ddd, 2px dashed red' },
+                'border-radius': { desc: '角の丸み', example: '5px, 50%, 5px 10px' },
+                'width': { desc: '幅', example: '100%, 300px, 50vw' },
+                'height': { desc: '高さ', example: '100px, 100%, auto' },
+                'box-shadow': { desc: 'ボックスのシャドウ', example: '0 2px 8px rgba(0,0,0,0.1)' },
+                'text-align': { desc: 'テキストの配置', example: 'left, center, right, justify' },
+                'line-height': { desc: '行の高さ', example: '1.5, 20px, 150%' },
+                'letter-spacing': { desc: '文字間隔', example: '1px, 0.1em' },
+                'display': { desc: 'レイアウトモード', example: 'block, inline, flex, grid, none' },
+                'flex-direction': { desc: 'フレックスの方向', example: 'row, column, row-reverse' },
+                'justify-content': { desc: 'フレックスの主軸配置', example: 'flex-start, center, space-between' },
+                'align-items': { desc: 'フレックスの交差軸配置', example: 'flex-start, center, stretch' },
+                'gap': { desc: 'フレックス/グリッドのアイテム間隔', example: '10px, 10px 20px' },
+                'position': { desc: '位置指定方法', example: 'static, relative, absolute, fixed' },
+                'top': { desc: '上からの距離', example: '10px, -5px, 50%' },
+                'left': { desc: '左からの距離', example: '10px, -5px, 50%' },
+                'opacity': { desc: '透明度', example: '0.5, 1, 0' },
+                'transform': { desc: '変形（回転、スケール、移動）', example: 'rotate(45deg), scale(1.5), translate(10px, 20px)' },
+                'transition': { desc: 'アニメーション効果', example: 'all 0.3s, color 0.5s ease-in-out' },
+                'cursor': { desc: 'マウスカーソルのスタイル', example: 'pointer, default, text, wait' },
+                'overflow': { desc: 'はみ出し時の表示', example: 'hidden, scroll, auto' },
+                'text-decoration': { desc: 'テキストの装飾', example: 'none, underline, line-through' },
+                'text-shadow': { desc: 'テキストシャドウ', example: '2px 2px 4px rgba(0,0,0,0.3)' },
+                'background-image': { desc: '背景画像', example: 'url(image.jpg), linear-gradient(to right, red, blue)' },
+                'z-index': { desc: '重なり順', example: '1, 10, 100' }
+            };
+
             const templates = {
                 templateA: {
                     name: 'テンプレートA',
@@ -399,18 +455,20 @@
             const templatesList = document.getElementById('templates-list');
             const propertyInput = document.getElementById('property-input');
             const valueInput = document.getElementById('value-input');
-            const customCssInput = document.getElementById('custom-css');
             const addBtn = document.getElementById('add-btn');
-            const updateCustomBtn = document.getElementById('update-custom-btn');
             const clearBtn = document.getElementById('clear-btn');
             const cssRulesList = document.getElementById('css-rules-list');
             const cssOutput = document.getElementById('css-output');
             const preview = document.getElementById('preview');
             const copyBtn = document.getElementById('copy-btn');
+            const autocompleteList = document.getElementById('autocomplete-list');
+            const propertyDescription = document.getElementById('property-description');
 
             let cssRules = {};
             let currentTemplate = null;
+            let selectedProperty = null;
 
+            // テンプレート表示
             function renderTemplates() {
                 templatesList.innerHTML = '';
                 for (let key in templates) {
@@ -423,6 +481,7 @@
                 }
             }
 
+            // テンプレート選択
             function selectTemplate(templateKey) {
                 currentTemplate = templateKey;
                 document.querySelectorAll('.template-item').forEach(item => item.classList.remove('active'));
@@ -430,6 +489,66 @@
                 updatePreview();
             }
 
+            // オートコンプリート表示
+            propertyInput.addEventListener('input', function(e) {
+                const value = this.value.toLowerCase().trim();
+                
+                if (!value) {
+                    autocompleteList.classList.remove('active');
+                    propertyDescription.classList.remove('active');
+                    return;
+                }
+
+                const matches = Object.keys(cssProperties).filter(prop => 
+                    prop.toLowerCase().includes(value)
+                );
+
+                if (matches.length === 0) {
+                    autocompleteList.classList.remove('active');
+                    return;
+                }
+
+                autocompleteList.innerHTML = '';
+                matches.slice(0, 8).forEach(prop => {
+                    const item = document.createElement('div');
+                    item.className = 'autocomplete-item';
+                    item.innerHTML = `
+                        <div class="autocomplete-item-name">${prop}</div>
+                        <div class="autocomplete-item-desc">${cssProperties[prop].desc}</div>
+                    `;
+                    item.addEventListener('click', () => selectProperty(prop));
+                    autocompleteList.appendChild(item);
+                });
+
+                autocompleteList.classList.add('active');
+            });
+
+            // プロパティ選択
+            function selectProperty(prop) {
+                propertyInput.value = prop;
+                selectedProperty = prop;
+                autocompleteList.classList.remove('active');
+                valueInput.focus();
+
+                // 説明表示
+                const propInfo = cssProperties[prop];
+                propertyDescription.innerHTML = `
+                    <strong>${prop}</strong>
+                    ${propInfo.desc}<br>
+                    <span style="font-size: 0.9em;">例：${propInfo.example}</span>
+                `;
+                propertyDescription.classList.add('active');
+            }
+
+            // プロパティ入力時の説明表示
+            propertyInput.addEventListener('change', function() {
+                const prop = this.value.trim().toLowerCase();
+                if (cssProperties[prop]) {
+                    selectProperty(prop);
+                }
+            });
+
+            // CSS追加
             function addCSSRule() {
                 const property = propertyInput.value.trim();
                 const value = valueInput.value.trim();
@@ -442,32 +561,24 @@
                 cssRules[property] = value;
                 propertyInput.value = '';
                 valueInput.value = '';
+                propertyDescription.classList.remove('active');
                 propertyInput.focus();
 
                 updateDisplay();
             }
 
-            function updateCustomCSS() {
-                const customCss = customCssInput.value.trim();
-                
-                if (!customCss) {
-                    alert('CSSを入力してください');
-                    return;
-                }
+            addBtn.addEventListener('click', addCSSRule);
+            valueInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') addCSSRule();
+            });
 
-                // CSSを解析して追加
-                const lines = customCss.split(';').filter(line => line.trim());
-                lines.forEach(line => {
-                    const [prop, val] = line.split(':').map(s => s.trim());
-                    if (prop && val) {
-                        cssRules[prop] = val;
-                    }
-                });
-
-                customCssInput.value = '';
+            // CSS削除
+            window.deleteCSSRule = function(property) {
+                delete cssRules[property];
                 updateDisplay();
-            }
+            };
 
+            // 表示更新
             function updateDisplay() {
                 updateCSSList();
                 updateCSSOutput();
@@ -476,7 +587,7 @@
 
             function updateCSSList() {
                 if (Object.keys(cssRules).length === 0) {
-                    cssRulesList.innerHTML = '<div class="css-rule-item" style="color: #999;">プロパティはまだ追加されていません</div>';
+                    cssRulesList.innerHTML = '<div class="empty-list">プロパティはまだ追加されていません</div>';
                     return;
                 }
 
@@ -520,33 +631,18 @@
                     styles += `${property}: ${cssRules[property]}; `;
                 }
 
-                preview.innerHTML = `
-                    <div style="${styles}">
-                        ${template.html}
-                    </div>
-                `;
+                preview.innerHTML = `<div style="${styles}">${template.html}</div>`;
             }
 
-            window.deleteCSSRule = function(property) {
-                delete cssRules[property];
-                updateDisplay();
-            };
-
-            addBtn.addEventListener('click', addCSSRule);
-            valueInput.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') addCSSRule();
-            });
-
-            updateCustomBtn.addEventListener('click', updateCustomCSS);
-
+            // クリア
             clearBtn.addEventListener('click', function() {
                 if (confirm('すべてのプロパティを削除しますか？')) {
                     cssRules = {};
-                    customCssInput.value = '';
                     updateDisplay();
                 }
             });
 
+            // コピー
             copyBtn.addEventListener('click', function() {
                 const cssCode = cssOutput.querySelector('code').textContent;
                 
@@ -567,6 +663,7 @@
                 });
             });
 
+            // 初期化
             renderTemplates();
         });
     </script>
