@@ -96,32 +96,45 @@
             font-weight: 600;
         }
 
-        .input-wrapper {
+        .custom-select {
             position: relative;
             margin-bottom: 10px;
         }
 
-        input[type="text"],
-        input[type="color"],
-        textarea {
+        .select-trigger {
             width: 100%;
             padding: 10px 15px;
             border: 2px solid #ddd;
             border-radius: 5px;
-            font-size: 1em;
+            background: white;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             transition: border-color 0.3s;
-            font-family: inherit;
+            font-size: 1em;
         }
 
-        input[type="text"]:focus,
-        input[type="color"]:focus,
-        textarea:focus {
-            outline: none;
+        .select-trigger:hover {
+            border-color: #667eea;
+        }
+
+        .select-trigger.active {
             border-color: #667eea;
             box-shadow: 0 0 5px rgba(102, 126, 234, 0.3);
         }
 
-        .autocomplete-list {
+        .select-arrow {
+            font-size: 0.8em;
+            color: #667eea;
+            transition: transform 0.3s;
+        }
+
+        .select-trigger.active .select-arrow {
+            transform: rotate(180deg);
+        }
+
+        .select-options {
             position: absolute;
             top: 100%;
             left: 0;
@@ -130,35 +143,36 @@
             border: 1px solid #ddd;
             border-top: none;
             border-radius: 0 0 5px 5px;
-            max-height: 200px;
+            max-height: 300px;
             overflow-y: auto;
             z-index: 1000;
             display: none;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
 
-        .autocomplete-list.active {
+        .select-options.active {
             display: block;
         }
 
-        .autocomplete-item {
-            padding: 10px 15px;
+        .select-option {
+            padding: 12px 15px;
             cursor: pointer;
-            border-bottom: 1px solid #eee;
+            border-bottom: 1px solid #f0f0f0;
             transition: background 0.2s;
         }
 
-        .autocomplete-item:hover {
+        .select-option:hover {
             background: #e7f0ff;
         }
 
-        .autocomplete-item-name {
+        .select-option-name {
             font-weight: 600;
             color: #667eea;
             font-family: 'Courier New', monospace;
-            font-size: 0.9em;
+            font-size: 0.95em;
         }
 
-        .autocomplete-item-desc {
+        .select-option-desc {
             font-size: 0.85em;
             color: #777;
             margin-top: 3px;
@@ -182,6 +196,30 @@
         .property-description strong {
             display: block;
             margin-bottom: 5px;
+        }
+
+        .input-wrapper {
+            margin-bottom: 10px;
+        }
+
+        input[type="text"],
+        input[type="color"],
+        textarea {
+            width: 100%;
+            padding: 10px 15px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+            font-family: inherit;
+        }
+
+        input[type="text"]:focus,
+        input[type="color"]:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 5px rgba(102, 126, 234, 0.3);
         }
 
         .btn {
@@ -216,16 +254,6 @@
 
         .btn-danger:hover {
             background: #c82333;
-        }
-
-        .button-group {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
-        }
-
-        .button-group .btn {
-            flex: 1;
         }
 
         .css-rules-list {
@@ -336,10 +364,6 @@
             h1 {
                 font-size: 1.8em;
             }
-
-            .button-group {
-                flex-direction: column;
-            }
         }
     </style>
 </head>
@@ -358,22 +382,27 @@
                 
                 <div class="property-input-group">
                     <label>プロパティを選択:</label>
-                    <div class="input-wrapper">
-                        <input type="text" id="property-input" placeholder="プロパティ名を入力（例：color, background-color）" autocomplete="off">
-                        <div class="autocomplete-list" id="autocomplete-list"></div>
+                    <div class="custom-select">
+                        <div class="select-trigger" id="property-trigger">
+                            <span id="property-selected">プロパティを選択...</span>
+                            <span class="select-arrow">▼</span>
+                        </div>
+                        <div class="select-options" id="property-options"></div>
                     </div>
                     <div class="property-description" id="property-description"></div>
                 </div>
 
                 <div class="property-input-group">
                     <label>値:</label>
-                    <input type="text" id="value-input" placeholder="値を入力（例：#333, 10px, 1.5）">
-                    <button class="btn btn-primary" id="add-btn" style="width: 100%; margin-top: 10px;">追加</button>
+                    <div class="input-wrapper">
+                        <input type="text" id="value-input" placeholder="値を入力（例：#333, 10px, 1.5）">
+                    </div>
+                    <button class="btn btn-primary" id="add-btn" style="width: 100%;">追加</button>
                 </div>
 
-                <h3 style="margin-top: 20px; margin-bottom: 10px; font-size: 1.1em; color: #555;">追加されたプロパティ:</h3>
+                <h3 style="margin-top: 20px; margin-bottom: 10px; font-size: 1.1em; color: #555;">追加された��ロパティ:</h3>
                 <div class="css-rules-list" id="css-rules-list">
-                    <div class="empty-list">プロパティはまだ追加されていません</div>
+                    <div class="empty-list">プロパティはまだ追加されて��ません</div>
                 </div>
 
                 <button class="btn btn-danger" id="clear-btn" style="width: 100%; margin-top: 15px;">すべてクリア</button>
@@ -453,7 +482,9 @@
             };
 
             const templatesList = document.getElementById('templates-list');
-            const propertyInput = document.getElementById('property-input');
+            const propertyTrigger = document.getElementById('property-trigger');
+            const propertyOptions = document.getElementById('property-options');
+            const propertySelected = document.getElementById('property-selected');
             const valueInput = document.getElementById('value-input');
             const addBtn = document.getElementById('add-btn');
             const clearBtn = document.getElementById('clear-btn');
@@ -461,7 +492,6 @@
             const cssOutput = document.getElementById('css-output');
             const preview = document.getElementById('preview');
             const copyBtn = document.getElementById('copy-btn');
-            const autocompleteList = document.getElementById('autocomplete-list');
             const propertyDescription = document.getElementById('property-description');
 
             let cssRules = {};
@@ -481,53 +511,42 @@
                 }
             }
 
-            // テンプレート選択
-            function selectTemplate(templateKey) {
-                currentTemplate = templateKey;
-                document.querySelectorAll('.template-item').forEach(item => item.classList.remove('active'));
-                document.querySelectorAll('.template-item')[Object.keys(templates).indexOf(templateKey)].classList.add('active');
-                updatePreview();
+            // プロパティドロップダウン表示
+            function renderPropertyOptions() {
+                propertyOptions.innerHTML = '';
+                for (let prop in cssProperties) {
+                    const option = document.createElement('div');
+                    option.className = 'select-option';
+                    const propInfo = cssProperties[prop];
+                    option.innerHTML = `
+                        <div class="select-option-name">${prop}</div>
+                        <div class="select-option-desc">${propInfo.desc}</div>
+                    `;
+                    option.addEventListener('click', () => selectProperty(prop));
+                    propertyOptions.appendChild(option);
+                }
             }
 
-            // オートコンプリート表示
-            propertyInput.addEventListener('input', function(e) {
-                const value = this.value.toLowerCase().trim();
-                
-                if (!value) {
-                    autocompleteList.classList.remove('active');
-                    propertyDescription.classList.remove('active');
-                    return;
+            // ドロップダウンの開閉
+            propertyTrigger.addEventListener('click', function() {
+                propertyOptions.classList.toggle('active');
+                propertyTrigger.classList.toggle('active');
+            });
+
+            // 外側クリックでドロップダウン閉じる
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('.custom-select')) {
+                    propertyOptions.classList.remove('active');
+                    propertyTrigger.classList.remove('active');
                 }
-
-                const matches = Object.keys(cssProperties).filter(prop => 
-                    prop.toLowerCase().includes(value)
-                );
-
-                if (matches.length === 0) {
-                    autocompleteList.classList.remove('active');
-                    return;
-                }
-
-                autocompleteList.innerHTML = '';
-                matches.slice(0, 8).forEach(prop => {
-                    const item = document.createElement('div');
-                    item.className = 'autocomplete-item';
-                    item.innerHTML = `
-                        <div class="autocomplete-item-name">${prop}</div>
-                        <div class="autocomplete-item-desc">${cssProperties[prop].desc}</div>
-                    `;
-                    item.addEventListener('click', () => selectProperty(prop));
-                    autocompleteList.appendChild(item);
-                });
-
-                autocompleteList.classList.add('active');
             });
 
             // プロパティ選択
             function selectProperty(prop) {
-                propertyInput.value = prop;
                 selectedProperty = prop;
-                autocompleteList.classList.remove('active');
+                propertySelected.textContent = prop;
+                propertyOptions.classList.remove('active');
+                propertyTrigger.classList.remove('active');
                 valueInput.focus();
 
                 // 説明表示
@@ -540,29 +559,33 @@
                 propertyDescription.classList.add('active');
             }
 
-            // プロパティ入力時の説明表示
-            propertyInput.addEventListener('change', function() {
-                const prop = this.value.trim().toLowerCase();
-                if (cssProperties[prop]) {
-                    selectProperty(prop);
-                }
-            });
+            // テンプレート選択
+            function selectTemplate(templateKey) {
+                currentTemplate = templateKey;
+                document.querySelectorAll('.template-item').forEach(item => item.classList.remove('active'));
+                document.querySelectorAll('.template-item')[Object.keys(templates).indexOf(templateKey)].classList.add('active');
+                updatePreview();
+            }
 
             // CSS追加
             function addCSSRule() {
-                const property = propertyInput.value.trim();
-                const value = valueInput.value.trim();
-
-                if (!property || !value) {
-                    alert('プロパティと値を入力してください');
+                if (!selectedProperty) {
+                    alert('プロパティを選択してください');
                     return;
                 }
 
-                cssRules[property] = value;
-                propertyInput.value = '';
+                const value = valueInput.value.trim();
+
+                if (!value) {
+                    alert('値を入力してください');
+                    return;
+                }
+
+                cssRules[selectedProperty] = value;
                 valueInput.value = '';
+                propertySelected.textContent = 'プロパティを選択...';
+                selectedProperty = null;
                 propertyDescription.classList.remove('active');
-                propertyInput.focus();
 
                 updateDisplay();
             }
@@ -665,6 +688,7 @@
 
             // 初期化
             renderTemplates();
+            renderPropertyOptions();
         });
     </script>
 </body>
