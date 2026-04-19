@@ -174,7 +174,7 @@
         $('#final-empire-form').on('submit', function(e) {
             e.preventDefault();
             let secure = true;
-            $('.security-input').each(function() { if (/[">&]/.test($(this).val())) secure = false; });
+            //$('.security-input').each(function() { if (/[">&]/.test($(this).val())) secure = false; });
             if (!secure) { alert('javascriptのurlが無効です'); return; }
 
             const dtd = $('#dtd-select').val();
