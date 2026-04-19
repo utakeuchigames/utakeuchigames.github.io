@@ -393,5 +393,70 @@
                 editorContainer.innerHTML = html;
 
                 document.querySelectorAll('.field-input').forEach(input => {
-                    input.addEventListener('input*
-
+                    input.addEventListener('input', function() {
+                        currentProperties[this.dataset.property] = this.value;
+                        updateCSS();
+                        updatePreviewStyles();
+                    });
+                });
+
+                document.getElementById('apply-btn').addEventListener('click', () => alert('設定を適用しました！'));
+                document.getElementById('reset-btn').addEventListener('click', () => selectTemplate(currentTemplate));
+            }
+
+            function loadPreview() {
+                const template = templates[currentTemplate];
+                preview.innerHTML = template.html;
+                updatePreviewStyles();
+            }
+
+            function updatePreviewStyles() {
+                const styleTag = preview.querySelector('style');
+                if (styleTag) {
+                    let styles = ':root {';
+                    for (let property in currentProperties) {
+                        styles += `${property}: ${currentProperties[property]};`;
+                    }
+                    styles += '}';
+                    styleTag.textContent = styles;
+                }
+            }
+
+            function updateCSS() {
+                const template = templates[currentTemplate];
+                let cssCode = `:root {\n`;
+
+                for (let property in currentProperties) {
+                    cssCode += `    ${property}: ${currentProperties[property]};\n`;
+                }
+
+                cssCode += '}';
+
+                cssOutput.querySelector('code').textContent = cssCode;
+            }
+
+            copyBtn.addEventListener('click', function() {
+                const cssCode = cssOutput.querySelector('code').textContent;
+                
+                if (!cssCode.trim()) {
+                    alert('コピーするCSS がありません');
+                    return;
+                }
+
+                navigator.clipboard.writeText(cssCode).then(() => {
+                    const originalText = copyBtn.textContent;
+                    copyBtn.textContent = 'コピーしました！';
+                    
+                    setTimeout(() => {
+                        copyBtn.textContent = originalText;
+                    }, 2000);
+                }).catch(err => {
+                    alert('コピーに失敗しました');
+                });
+            });
+
+            renderTemplates();
+        });
+    </script>
+</body>
+</html>
