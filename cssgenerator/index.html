@@ -1,55 +1,397 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CSS Generator</title>
+    <title>CSSジェネレーター</title>
+    <meta name="author" content="utakeuchigames">
     <style>
-        :root {
-            --main-bg-color: #fff;
-            --main-text-color: #000;
-            --button-bg-color: #008CBA;
-            --button-text-color: #fff;
-        }
-        body {
-            background-color: var(--main-bg-color);
-            color: var(--main-text-color);
-            font-family: Arial, sans-serif;
+        * {
             margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
             padding: 20px;
         }
-        button {
-            background-color: var(--button-bg-color);
-            color: var(--button-text-color);
-            border: none;
-            padding: 10px 20px;
-            cursor: pointer;
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
         }
-        button:hover {
-            opacity: 0.8;
+
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 2.5em;
+        }
+
+        h2 {
+            color: #555;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+
+        .main-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        .templates-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+        }
+
+        .template-item {
+            background: white;
+            padding: 15px;
+            margin-bottom: 12px;
+            border-left: 4px solid #667eea;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .template-item:hover {
+            box-shadow: 0 3px 10px rgba(102, 126, 234, 0.2);
+            transform: translateX(5px);
+        }
+
+        .template-item.active {
+            background: #e7f0ff;
+            border-left-color: #667eea;
+        }
+
+        .template-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+            font-size: 1.1em;
+        }
+
+        .editor-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 600;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        input[type="color"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 10px 15px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+            font-family: inherit;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus,
+        input[type="color"]:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 5px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+            margin-top: 10px;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .button-group .btn {
+            flex: 1;
+        }
+
+        .preview-section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 30px;
+        }
+
+        .output {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        pre {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-size: 0.95em;
+            line-height: 1.5;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        code {
+            font-family: 'Courier New', monospace;
+        }
+
+        .preview-box {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+        }
+
+        .preview-content {
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            padding: 20px;
+            overflow-y: auto;
+            max-height: 500px;
+        }
+
+        .copy-btn {
+            width: 100%;
+        }
+
+        .loading {
+            text-align: center;
+            color: #999;
+            padding: 40px 20px;
+        }
+
+        @media (max-width: 1024px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
+            h1 {
+                font-size: 1.8em;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
         }
     </style>
 </head>
 <body>
-    <h1>CSS Generator</h1>
-    <div id="template-selector">
-        <h2>Select a Template</h2>
-        <button onclick="loadTemplate('A')">Template A</button>
-        <button onclick="loadTemplate('B')">Template B</button>
-        <button onclick="loadTemplate('C')">Template C</button>
+    <div class="container">
+        <h1>CSSジェネレーター</h1>
+        
+        <div class="main-layout">
+            <div class="templates-section">
+                <h2>テンプレート</h2>
+                <div id="templates-list"></div>
+            </div>
+
+            <div class="editor-section">
+                <h2>設定編集</h2>
+                <div id="editor-container">
+                    <p class="loading">左からテンプレートを選択してください</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="preview-section">
+            <h2>プレビュー</h2>
+            
+            <div class="output">
+                <h3 style="margin-bottom: 10px; font-size: 1.1em;">生成されたCSS:</h3>
+                <pre id="css-output"><code></code></pre>
+                <button id="copy-btn" class="btn btn-secondary copy-btn">コピー</button>
+            </div>
+
+            <div class="preview-box">
+                <h3 style="margin-bottom: 10px; font-size: 1.1em;">プレビュー:</h3>
+                <div id="preview" class="preview-content">
+                    <div class="loading">テンプレートを選択するとプレビューが表示されます</div>
+                </div>
+            </div>
+        </div>
     </div>
-    <div id="template-content"></div>
+
     <script>
-        function loadTemplate(templateName) {
-            fetch(`templates/${templateName}.html`)
-                .then(response => response.text())
-                .then(html => {
-                    document.getElementById('template-content').innerHTML = html;
-                })
-                .catch(error => {
-                    console.error('Error loading template:', error);
+        document.addEventListener('DOMContentLoaded', function() {
+            const templates = {
+                templateA: {
+                    name: 'テンプレートA',
+                    selector: 'body',
+                    properties: {
+                        '--primary-color': '#667eea',
+                        '--text-color': '#333333',
+                        '--bg-color': '#ffffff'
+                    },
+                    fields: [
+                        { name: '--primary-color', label: 'プライマリカラー', type: 'color' },
+                        { name: '--text-color', label: 'テキスト色', type: 'color' },
+                        { name: '--bg-color', label: '背景色', type: 'color' }
+                    ],
+                    html: '<style id="template-styles">:root{--primary-color:#667eea;--text-color:#333333;--bg-color:#ffffff}body{font-family:\'Segoe UI\',Tahoma,Geneva,Verdana,sans-serif;color:var(--text-color);background-color:var(--bg-color)}h1{color:var(--primary-color);margin-bottom:16px}p{line-height:1.6;margin-bottom:12px}button{background-color:var(--primary-color);color:white;padding:10px 20px;border:none;border-radius:5px;cursor:pointer}button:hover{opacity:.8}</style><div style="padding: 20px;"><h1>テンプレートA</h1><p>これはシンプルで汎用的なデザインです。</p><p>カラーバリエーションを調整することで、様々なサイトに対応できます。</p><button>サンプルボタン</button></div>'
+                },
+                templateB: {
+                    name: 'テンプレートB',
+                    selector: '.card',
+                    properties: {
+                        '--accent-color': '#764ba2',
+                        '--border-radius': '8px',
+                        '--shadow': '0 2px 8px rgba(0, 0, 0, 0.1)'
+                    },
+                    fields: [
+                        { name: '--accent-color', label: 'アクセントカラー', type: 'color' },
+                        { name: '--border-radius', label: '角丸 (px)', type: 'text' },
+                        { name: '--shadow', label: 'シャドウ', type: 'text' }
+                    ],
+                    html: '<style id="template-styles">:root{--accent-color:#764ba2;--border-radius:8px;--shadow:0 2px 8px rgba(0,0,0,0.1)}body{background-color:#f8f9fa;font-family:\'Segoe UI\',Tahoma,Geneva,Verdana,sans-serif}.card{background-color:white;padding:20px;margin:10px 0;border-radius:var(--border-radius);box-shadow:var(--shadow);transition:all .3s}.card:hover{box-shadow:0 4px 16px rgba(0,0,0,.15)}h2{color:var(--accent-color);margin-bottom:10px}p{color:#666;line-height:1.6}</style><div style="padding: 20px;"><div class="card"><h2>テンプレートB</h2><p>カード型のレイアウトです。シャドウと角丸を調整して、独自のデザインを作成できます。</p></div><div class="card"><h2>複数カード対応</h2><p>複数のカードを使ったレイアウトに最適です。</p></div></div>'
+                },
+                templateC: {
+                    name: 'テンプレートC',
+                    selector: '.article',
+                    properties: {
+                        '--heading-color': '#222222',
+                        '--font-size': '16px',
+                        '--line-height': '1.6'
+                    },
+                    fields: [
+                        { name: '--heading-color', label: '見出し色', type: 'color' },
+                        { name: '--font-size', label: 'フォントサイズ (px)', type: 'text' },
+                        { name: '--line-height', label: '行の高さ', type: 'text' }
+                    ],
+                    html: '<style id="template-styles">:root{--heading-color:#222222;--font-size:16px;--line-height:1.6}body{font-family:Georgia,\'Times New Roman\',serif;font-size:var(--font-size);line-height:var(--line-height);background-color:#fafafa;color:#333}.article{max-width:800px;margin:0 auto;padding:40px 20px;background-color:white}h1,h2,h3{color:var(--heading-color);margin-top:32px;margin-bottom:16px}h1{font-size:2em;border-bottom:2px solid #ddd;padding-bottom:10px}h2{font-size:1.6em}p{margin-bottom:16px}</style><div class="article"><h1>テンプレートC</h1><p>このテンプレートは、ブログや記事向けの設計です。見出しのカラーやフォントサイズ、行間を調整することで、読みやすいコンテンツを作成できます。</p><h2>セクション1</h2><p>テンプレートCは、テキストの可読性を重視した設計になっています。</p><h2>セクション2</h2><p>CSSカスタムプロパティ（CSS変数）を使用しているため、簡単にスタイルを変更できます。</p></div>'
+                }
+            };
+
+            const templatesList = document.getElementById('templates-list');
+            const editorContainer = document.getElementById('editor-container');
+            const cssOutput = document.getElementById('css-output');
+            const preview = document.getElementById('preview');
+            const copyBtn = document.getElementById('copy-btn');
+
+            let currentTemplate = null;
+            let currentProperties = {};
+
+            function renderTemplates() {
+                templatesList.innerHTML = '';
+                for (let key in templates) {
+                    const template = templates[key];
+                    const div = document.createElement('div');
+                    div.className = 'template-item';
+                    div.innerHTML = `<div class="template-name">${template.name}</div>`;
+                    div.addEventListener('click', () => selectTemplate(key));
+                    templatesList.appendChild(div);
+                }
+            }
+
+            function selectTemplate(templateKey) {
+                currentTemplate = templateKey;
+                const template = templates[templateKey];
+                currentProperties = JSON.parse(JSON.stringify(template.properties));
+
+                document.querySelectorAll('.template-item').forEach(item => item.classList.remove('active'));
+                document.querySelectorAll('.template-item')[Object.keys(templates).indexOf(templateKey)].classList.add('active');
+
+                renderEditor();
+                loadPreview();
+                updateCSS();
+            }
+
+            function renderEditor() {
+                const template = templates[currentTemplate];
+                let html = '';
+
+                template.fields.forEach(field => {
+                    const value = currentProperties[field.name] || '';
+                    if (field.type === 'color') {
+                        html += `<div class="input-group"><label for="field-${field.name}">${field.label}:</label><input type="color" id="field-${field.name}" value="${value}" class="field-input" data-property="${field.name}"></div>`;
+                    } else {
+                        html += `<div class="input-group"><label for="field-${field.name}">${field.label}:</label><input type="text" id="field-${field.name}" value="${value}" placeholder="${field.label}" class="field-input" data-property="${field.name}"></div>`;
+                    }
                 });
-        }
-    </script>
-</body>
-</html>
+
+                html += `<div class="button-group"><button class="btn btn-success" id="apply-btn">適用</button><button class="btn btn-danger" id="reset-btn">リセット</button></div>`;
+
+                editorContainer.innerHTML = html;
+
+                document.querySelectorAll('.field-input').forEach(input => {
+                    input.addEventListener('input*
+
