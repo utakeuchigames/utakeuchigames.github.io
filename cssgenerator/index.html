@@ -633,7 +633,7 @@
                 let cssCode = "";
 
                 for (let property in cssRules) {
-                    cssCode += `    ${property}: ${cssRules[property]};\n`;
+                    cssCode += `${property}: ${cssRules[property]};\n`;
                 }
 
                 cssOutput.querySelector('code').textContent = cssCode;
