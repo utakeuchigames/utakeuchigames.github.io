@@ -630,13 +630,11 @@
             }
 
             function updateCSSOutput() {
-                let cssCode = '.preview-content {\n';
+                let cssCode;
 
                 for (let property in cssRules) {
                     cssCode += `    ${property}: ${cssRules[property]};\n`;
                 }
-
-                cssCode += '}';
 
                 cssOutput.querySelector('code').textContent = cssCode;
             }
