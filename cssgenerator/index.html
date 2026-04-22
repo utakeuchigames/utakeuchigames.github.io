@@ -630,7 +630,7 @@
             }
 
             function updateCSSOutput() {
-                let cssCode;
+                let cssCode = "";
 
                 for (let property in cssRules) {
                     cssCode += `    ${property}: ${cssRules[property]};\n`;
