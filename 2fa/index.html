@@ -1,86 +1,46 @@
 <!DOCTYPE html>
 <html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fixed 2FA Node</title>
-    <style>
-        body { font-family: -apple-system, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #000; color: #fff; }
-        #code { font-size: 4rem; font-weight: bold; color: #00ff41; font-family: monospace; }
-        #timer { margin-top: 10px; color: #888; }
-        #debug { font-size: 0.8rem; color: #444; margin-top: 20px; }
-    </style>
-</head>
 <body>
-    <div id="code">LOADING</div>
-    <div id="timer">--s</div>
-    <div id="debug">Target: tapy czru gviy rjkc</div>
+    <div style="font-family:monospace; background:#000; color:#0f0; padding:20px;">
+        <div>[SECRET]: tapyczrugviyrjkc</div>
+        <hr>
+        <div id="unix" style="font-size:1.2rem;">Time: Loading...</div>
+        <div id="otp" style="font-size:3rem; font-weight:bold;">Code: Loading...</div>
+        <hr>
+        <div id="debug" style="color:#888;"></div>
+    </div>
 
     <script>
-        // --- Base32デコードロジック (厳密版) ---
-        function base32tohex(base32) {
-            const base32chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+        // RFC6238 準拠の TOTP 計算 (もっともシンプルな実装)
+        async function solve() {
+            const secret = "TAPYCZRUGVIYRJKC";
+            const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+            
+            // Base32 Decode
             let bits = "";
-            let hex = "";
-            
-            // スペース削除と大文字化
-            base32 = base32.replace(/\s/g, "").toUpperCase();
-
-            for (let i = 0; i < base32.length; i++) {
-                let val = base32chars.indexOf(base32.charAt(i));
-                if (val === -1) continue;
-                bits += val.toString(2).padStart(5, '0');
+            for(let i=0; i<secret.length; i++){
+                bits += alphabet.indexOf(secret[i]).toString(2).padStart(5, '0');
             }
+            const key = new Uint8Array(bits.match(/.{8}/g).map(b => parseInt(b, 2)));
 
-            for (let i = 0; i + 8 <= bits.length; i += 8) {
-                let chunk = bits.substring(i, i + 8);
-                hex = hex + parseInt(chunk, 2).toString(16).padStart(2, '0');
-            }
-            return hex;
-        }
+            // Time Step
+            const now = Math.floor(Date.now() / 1000);
+            document.getElementById('unix').innerText = "UnixTime: " + now;
+            const counter = new Uint8Array(8);
+            const hexTime = Math.floor(now / 30).toString(16).padStart(16, '0');
+            for(let i=0; i<8; i++) counter[i] = parseInt(hexTime.substr(i*2, 2), 16);
 
-        // --- TOTP生成 (Web Crypto API 使用) ---
-        async function getTOTP(secret) {
-            try {
-                const epoch = Math.floor(Date.now() / 1000);
-                const time = Math.floor(epoch / 30);
-                const timeHex = time.toString(16).padStart(16, '0');
-
-                const keyHex = base32tohex(secret);
-                
-                // バッファ変換
-                const keyBytes = new Uint8Array(keyHex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
-                const msgBytes = new Uint8Array(timeHex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
-
-                // HMAC-SHA1 計算
-                const cryptoKey = await window.crypto.subtle.importKey(
-                    "raw", keyBytes, { name: "HMAC", hash: "SHA-1" }, false, ["sign"]
-                );
-                const signature = await window.crypto.subtle.sign("HMAC", cryptoKey, msgBytes);
-                
-                const hmac = new Uint8Array(signature);
-                const offset = hmac[hmac.length - 1] & 0xf;
-                const otp = ((hmac[offset] & 0x7f) << 24 | (hmac[offset + 1] & 0xff) << 16 | (hmac[offset + 2] & 0xff) << 8 | (hmac[offset + 3] & 0xff)) % 1000000;
-                
-                return otp.toString().padStart(6, '0');
-            } catch (e) {
-                return "ERROR";
-            }
-        }
-
-        async function update() {
-            // URLのハッシュから取得、なければ直書きした鍵を使用
-            let secret = window.location.hash.replace('#', '') || "tapyczrugviyrjkc";
+            // HMAC-SHA1
+            const cryptoKey = await window.crypto.subtle.importKey("raw", key, {name: "HMAC", hash: "SHA-1"}, false, ["sign"]);
+            const sig = await window.crypto.subtle.sign("HMAC", cryptoKey, counter);
+            const hmac = new Uint8Array(sig);
+            const offset = hmac[19] & 0xf;
+            const otp = ((hmac[offset] & 0x7f) << 24 | (hmac[offset+1] & 0xff) << 16 | (hmac[offset+2] & 0xff) << 8 | (hmac[offset+3] & 0xff)) % 1000000;
             
-            const code = await getTOTP(secret);
-            document.getElementById('code').innerText = code;
-            
-            const timeLeft = 30 - (Math.floor(Date.now() / 1000) % 30);
-            document.getElementById('timer').innerText = `Next update in: ${timeLeft}s`;
+            document.getElementById('otp').innerText = "Code: " + otp.toString().padStart(6, '0');
         }
-
-        setInterval(update, 1000);
-        update();
+        setInterval(solve, 1000);
+        solve();
     </script>
 </body>
 </html>
