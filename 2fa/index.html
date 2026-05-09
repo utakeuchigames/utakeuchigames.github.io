@@ -3,55 +3,77 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simple 2FA Node</title>
-    <!-- TOTP生成ライブラリをCDNから読み込み -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/otplib/12.0.1/otplib.browser.js"></script>
+    <title>2FA Offline</title>
     <style>
-        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #f4f4f9; }
-        .card { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); text-align: center; }
-        #code { font-size: 3rem; font-weight: bold; color: #007bff; letter-spacing: 5px; margin: 1rem 0; }
-        #timer { color: #666; }
+        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #1a1a1a; color: white; }
+        #code { font-size: 4rem; font-weight: bold; color: #4af; letter-spacing: 4px; }
+        #timer { margin-top: 10px; color: #888; }
     </style>
 </head>
 <body>
+    <div id="label">2FA CODE</div>
+    <div id="code">LOADING</div>
+    <div id="timer">--s</div>
 
-<div class="card">
-    <div id="label">2FA Code</div>
-    <div id="code">------</div>
-    <div id="timer">Next update in: --s</div>
-</div>
-
-<script>
-    // 使い方: index.html#YOUR_SECRET でアクセス
-    // 秘密鍵はURLのハッシュから取得（サーバーには送信されない）
-    const secret = window.location.hash.replace('#', '').toUpperCase().replace(/\s/g, '');
-
-    function updateOTP() {
-        if (!secret) {
-            document.getElementById('code').innerText = 'NO KEY';
-            document.getElementById('label').innerText = 'URLの末尾に #秘密鍵 を入れてね';
-            return;
+    <script>
+        // Base32をデコードする関数
+        function base32ToHex(base32) {
+            const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+            let bits = "";
+            let hex = "";
+            for (let i = 0; i < base32.length; i++) {
+                let val = alphabet.indexOf(base32.charAt(i).toUpperCase());
+                if (val === -1) continue;
+                bits += val.toString(2).padStart(5, '0');
+            }
+            for (let i = 0; i + 4 <= bits.length; i += 4) {
+                hex += parseInt(bits.substring(i, i + 4), 2).toString(16);
+            }
+            return hex;
         }
 
-        try {
-            // TOTP生成 (デフォルト設定: 30秒, 6桁, SHA1)
-            const token = otplib.authenticator.generate(secret);
-            document.getElementById('code').innerText = token;
+        // TOTP生成メイン関数 (外部ライブラリ不要)
+        async function generateTOTP(secret) {
+            try {
+                const epoch = Math.floor(Date.now() / 1000);
+                const time = Math.floor(epoch / 30);
+                const timeHex = time.toString(16).padStart(16, '0');
 
-            // 次の更新までの残り時間を計算
-            const epoch = Math.floor(Date.now() / 1000);
-            const timeLeft = 30 - (epoch % 30);
-            document.getElementById('timer').innerText = `Next update in: ${timeLeft}s`;
-        } catch (err) {
-            document.getElementById('code').innerText = 'ERROR';
-            console.error(err);
+                const keyHex = base32ToHex(secret);
+                const keyBytes = new Uint8Array(keyHex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+                const msgBytes = new Uint8Array(timeHex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+
+                const cryptoKey = await window.crypto.subtle.importKey(
+                    "raw", keyBytes, { name: "HMAC", hash: "SHA-1" }, false, ["sign"]
+                );
+                const signature = await window.crypto.subtle.sign("HMAC", cryptoKey, msgBytes);
+                
+                const hmac = new Uint8Array(signature);
+                const offset = hmac[hmac.length - 1] & 0xf;
+                const otp = ((hmac[offset] & 0x7f) << 24 | (hmac[offset + 1] & 0xff) << 16 | (hmac[offset + 2] & 0xff) << 8 | (hmac[offset + 3] & 0xff)) % 1000000;
+                
+                return otp.toString().padStart(6, '0');
+            } catch (e) {
+                return "ERR";
+            }
         }
-    }
 
-    // 1秒ごとに更新
-    setInterval(updateOTP, 1000);
-    updateOTP();
-</script>
+        async function update() {
+            const secret = window.location.hash.replace('#', '').replace(/\s/g, '');
+            if (!secret) {
+                document.getElementById('code').innerText = "NO HASH";
+                return;
+            }
 
+            const code = await generateTOTP(secret);
+            document.getElementById('code').innerText = code;
+            
+            const timeLeft = 30 - (Math.floor(Date.now() / 1000) % 30);
+            document.getElementById('timer').innerText = `Next: ${timeLeft}s`;
+        }
+
+        setInterval(update, 1000);
+        update();
+    </script>
 </body>
 </html>
