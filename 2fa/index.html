@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple 2FA Node</title>
+    <!-- TOTP生成ライブラリをCDNから読み込み -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/otplib/12.0.1/otplib.browser.js"></script>
+    <style>
+        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #f4f4f9; }
+        .card { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); text-align: center; }
+        #code { font-size: 3rem; font-weight: bold; color: #007bff; letter-spacing: 5px; margin: 1rem 0; }
+        #timer { color: #666; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div id="label">2FA Code</div>
+    <div id="code">------</div>
+    <div id="timer">Next update in: --s</div>
+</div>
+
+<script>
+    // 使い方: index.html#YOUR_SECRET でアクセス
+    // 秘密鍵はURLのハッシュから取得（サーバーには送信されない）
+    const secret = window.location.hash.replace('#', '').toUpperCase().replace(/\s/g, '');
+
+    function updateOTP() {
+        if (!secret) {
+            document.getElementById('code').innerText = 'NO KEY';
+            document.getElementById('label').innerText = 'URLの末尾に #秘密鍵 を入れてね';
+            return;
+        }
+
+        try {
+            // TOTP生成 (デフォルト設定: 30秒, 6桁, SHA1)
+            const token = otplib.authenticator.generate(secret);
+            document.getElementById('code').innerText = token;
+
+            // 次の更新までの残り時間を計算
+            const epoch = Math.floor(Date.now() / 1000);
+            const timeLeft = 30 - (epoch % 30);
+            document.getElementById('timer').innerText = `Next update in: ${timeLeft}s`;
+        } catch (err) {
+            document.getElementById('code').innerText = 'ERROR';
+            console.error(err);
+        }
+    }
+
+    // 1秒ごとに更新
+    setInterval(updateOTP, 1000);
+    updateOTP();
+</script>
+
+</body>
+</html>
