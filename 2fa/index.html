@@ -3,46 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>2FA Offline</title>
+    <title>Fixed 2FA Node</title>
     <style>
-        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #1a1a1a; color: white; }
-        #code { font-size: 4rem; font-weight: bold; color: #4af; letter-spacing: 4px; }
+        body { font-family: -apple-system, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #000; color: #fff; }
+        #code { font-size: 4rem; font-weight: bold; color: #00ff41; font-family: monospace; }
         #timer { margin-top: 10px; color: #888; }
+        #debug { font-size: 0.8rem; color: #444; margin-top: 20px; }
     </style>
 </head>
 <body>
-    <div id="label">2FA CODE</div>
     <div id="code">LOADING</div>
     <div id="timer">--s</div>
+    <div id="debug">Target: tapy czru gviy rjkc</div>
 
     <script>
-        // Base32をデコードする関数
-        function base32ToHex(base32) {
-            const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+        // --- Base32デコードロジック (厳密版) ---
+        function base32tohex(base32) {
+            const base32chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
             let bits = "";
             let hex = "";
+            
+            // スペース削除と大文字化
+            base32 = base32.replace(/\s/g, "").toUpperCase();
+
             for (let i = 0; i < base32.length; i++) {
-                let val = alphabet.indexOf(base32.charAt(i).toUpperCase());
+                let val = base32chars.indexOf(base32.charAt(i));
                 if (val === -1) continue;
                 bits += val.toString(2).padStart(5, '0');
             }
-            for (let i = 0; i + 4 <= bits.length; i += 4) {
-                hex += parseInt(bits.substring(i, i + 4), 2).toString(16);
+
+            for (let i = 0; i + 8 <= bits.length; i += 8) {
+                let chunk = bits.substring(i, i + 8);
+                hex = hex + parseInt(chunk, 2).toString(16).padStart(2, '0');
             }
             return hex;
         }
 
-        // TOTP生成メイン関数 (外部ライブラリ不要)
-        async function generateTOTP(secret) {
+        // --- TOTP生成 (Web Crypto API 使用) ---
+        async function getTOTP(secret) {
             try {
                 const epoch = Math.floor(Date.now() / 1000);
                 const time = Math.floor(epoch / 30);
                 const timeHex = time.toString(16).padStart(16, '0');
 
-                const keyHex = base32ToHex(secret);
+                const keyHex = base32tohex(secret);
+                
+                // バッファ変換
                 const keyBytes = new Uint8Array(keyHex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
                 const msgBytes = new Uint8Array(timeHex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
 
+                // HMAC-SHA1 計算
                 const cryptoKey = await window.crypto.subtle.importKey(
                     "raw", keyBytes, { name: "HMAC", hash: "SHA-1" }, false, ["sign"]
                 );
@@ -54,22 +64,19 @@
                 
                 return otp.toString().padStart(6, '0');
             } catch (e) {
-                return "ERR";
+                return "ERROR";
             }
         }
 
         async function update() {
-            const secret = window.location.hash.replace('#', '').replace(/\s/g, '');
-            if (!secret) {
-                document.getElementById('code').innerText = "NO HASH";
-                return;
-            }
-
-            const code = await generateTOTP(secret);
+            // URLのハッシュから取得、なければ直書きした鍵を使用
+            let secret = window.location.hash.replace('#', '') || "tapyczrugviyrjkc";
+            
+            const code = await getTOTP(secret);
             document.getElementById('code').innerText = code;
             
             const timeLeft = 30 - (Math.floor(Date.now() / 1000) % 30);
-            document.getElementById('timer').innerText = `Next: ${timeLeft}s`;
+            document.getElementById('timer').innerText = `Next update in: ${timeLeft}s`;
         }
 
         setInterval(update, 1000);
